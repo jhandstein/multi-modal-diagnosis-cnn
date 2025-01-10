@@ -1,5 +1,5 @@
-from data_management.feature_map_files import FeatureMapFile
-from utils.config import NAKO_PATH
+from src.data_management.feature_map_files import FeatureMapFile
+from src.utils.config import NAKO_PATH
 
 subject_id = 100000
 scan_type = "anat"
