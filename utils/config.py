@@ -1,0 +1,1 @@
+NAKO_PATH = "/ritter/share/data/NAKO"
