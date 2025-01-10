@@ -2,7 +2,7 @@
 import lightning as L
 from torch import optim, nn, utils, Tensor
 
-from ccn_code.building_blocks.layers import ConvBranch2d
+from src.building_blocks.layers import ConvBranch2d
  
 # define the LightningModule
 class MultiModalCnn2d(L.LightningModule):

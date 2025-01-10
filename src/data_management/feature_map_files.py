@@ -3,28 +3,24 @@
 import numpy as np
 import nibabel as nib 
 from pathlib import Path
-from typing import Literal
 
-from utils.config import NAKO_PATH
-
-
-FMRIPREP_FOLDER = "derivatives_ses0/fmriprep"
-
+from src.utils.config import FMRI_PREP_FULL_SAMPLE, FeatureType, ModalityType
 
 class FeatureMapFile:
     """
     Class to handle the loading of feature map files from the NAKO dataset
     """
 
-    def __init__(self, subject_id: int, scan_type: Literal["anat", "func"], map_type: Literal["GM", "WM", "CSF", "reho", "ALFF", "fALFF", "VMHC"]):
+    def __init__(self, subject_id: int, scan_type: ModalityType, map_type: FeatureType):
         self.subject_id = subject_id
+        self.token = f"sub-{subject_id}"
         self.scan_type = scan_type
         self.map_type = map_type
 
     def get_path(self) -> Path:
-        if self.scan_type == "anat":
+        if self.scan_type == ModalityType.ANAT:
             return self._get_anat_path()
-        elif self.scan_type == "func":
+        elif self.scan_type == ModalityType.FUNC:
             return self._get_func_path()
         else:
             raise ValueError("Invalid scan type")
@@ -45,9 +41,7 @@ class FeatureMapFile:
         print(img.header.get_xyzt_units())
         
     def _get_anat_path(self) -> Path:
-        token = f"sub-{self.subject_id}"
-        return Path(NAKO_PATH, FMRIPREP_FOLDER, f"{token}/ses-0/anat/{token}_ses-0_space-MNI152NLin2009cAsym_label-{self.map_type}_probseg.nii.gz")
+        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_label-{self.map_type.value}_probseg.nii.gz")
 
     def _get_func_path(self) -> Path:
-        token = f"sub-{self.subject_id}"
-        return Path(NAKO_PATH, FMRIPREP_FOLDER, f"{token}/ses-0/func/{token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type}.nii.gz")
+        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type.value}.nii.gz")
