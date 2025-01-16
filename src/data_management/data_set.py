@@ -20,5 +20,11 @@ class NakoSingleFeatureDataset(Dataset):
         subject_id = self.subject_ids[idx]
         feature_file = FeatureMapFile(subject_id, self.modalities, self.feature_sets)
         feature_array = feature_file.load_array()
-        feature_tensor = torch.from_numpy(feature_array)
-        return feature_tensor, torch.tensor(self.labels[subject_id])
+        feature_tensor = torch.from_numpy(feature_array).float()
+        # extract only the middle slice 
+        feature_tensor = feature_tensor[feature_tensor.shape[0]//2]
+        feature_tensor = feature_tensor.unsqueeze(0)#.unsqueeze(0)
+
+        label = torch.tensor(self.labels[subject_id]).float()
+        
+        return feature_tensor, label

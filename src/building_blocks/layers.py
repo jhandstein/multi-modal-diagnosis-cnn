@@ -5,7 +5,7 @@ class ConvBranch2d(nn.Module):
         super().__init__()
         # convolutional layer
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=5, padding=1),
+            nn.Conv2d(1, 32, kernel_size=5, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
@@ -24,18 +24,22 @@ class ConvBranch2d(nn.Module):
         )
 
         # fully connected layers
-        x, y = 12, 12 # dimensions of the image after 4 conv layers
+        x, y = 51, 42 # dimensions of the image after 4 conv layers
         self.fc1 = nn.Linear(64 * x * y, 512)
-        self.fc2 = nn.Linear(512, 2)
+        self.fc2 = nn.Linear(512, 1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        # print(x.shape, "before conv layers")
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
+        # print(x.shape, "after conv layers")
         x = x.view(x.size(0), -1)
         x = self.fc1(x)
         x = self.fc2(x)
+        x = self.sigmoid(x)
         return x
     
 

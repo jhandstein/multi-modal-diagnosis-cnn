@@ -14,4 +14,6 @@ def extract_target(target: str, subject_ids: list[int]) -> pd.Series:
     nako_table = pd.read_csv(NAKO_TABLE_PATH)
     nako_table.set_index("ID", inplace=True)
     series = nako_table.loc[subject_ids, NAKO_TARGETS[target]]
+    if target == "sex":
+        series = series.map({1: 0, 2: 1})
     return series.sort_index()
