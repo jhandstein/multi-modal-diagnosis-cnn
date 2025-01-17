@@ -35,6 +35,15 @@ class BinaryClassificationCnn2d(L.LightningModule):
         # Logging to TensorBoard (if installed) by default
         # self.log("train_loss", loss)
         return loss
+    
+    def validation_step(self, batch):
+        x, y = batch
+        y_hat = self.model(x)
+        y_hat = y_hat.squeeze()
+        loss = nn.functional.binary_cross_entropy(y_hat, y)
+        # Logging to TensorBoard (if installed) by default
+        # self.log("val_loss", loss)
+        return loss
 
     def test_step(self, batch):
         # test_step defines the test loop.

@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from src.data_management.feature_map_files import FeatureMapFile
 from src.utils.config import FeatureType, ModalityType
 from src.utils.load_targets import extract_target
+from src.utils.subject_ids import sample_subject_ids
 
 class NakoSingleFeatureDataset(Dataset):
     def __init__(self, subject_ids: int, modality: ModalityType, feature_set: FeatureType, target: str):
@@ -28,3 +29,38 @@ class NakoSingleFeatureDataset(Dataset):
         label = torch.tensor(self.labels[subject_id]).float()
         
         return feature_tensor, label
+    
+
+def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8) -> tuple[NakoSingleFeatureDataset, NakoSingleFeatureDataset]:
+    current_sample = sample_subject_ids(n_samples)
+    train_size = int(n_samples * (1 - (2* val_test_frac)))
+    val_size = int(n_samples * val_test_frac)
+
+    train_idxs = current_sample[:train_size]
+    val_idxs = current_sample[train_size:train_size + val_size]
+    test_idxs = current_sample[train_size + val_size:]
+
+    print(f"Train idxs: {train_idxs[:5]}, Val idxs: {val_idxs[:5]}, Test idxs: {test_idxs[:5]}")
+
+    train_set = NakoSingleFeatureDataset(
+        train_idxs, 
+        ModalityType.ANAT,
+        FeatureType.GM,
+        "sex",
+    )
+
+    val_set = NakoSingleFeatureDataset(
+        val_idxs, 
+        ModalityType.ANAT,
+        FeatureType.GM,
+        "sex",
+    )
+
+    test_set = NakoSingleFeatureDataset(
+        test_idxs, 
+        ModalityType.ANAT,
+        FeatureType.GM,
+        "sex",
+    )
+
+    return train_set, val_set, test_set
