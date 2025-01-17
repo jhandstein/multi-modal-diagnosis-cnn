@@ -42,7 +42,7 @@ class BinaryClassificationCnn2d(L.LightningModule):
         y_hat = y_hat.squeeze()
         loss = nn.functional.binary_cross_entropy(y_hat, y)
         # Logging to TensorBoard (if installed) by default
-        # self.log("val_loss", loss)
+        self.log("val_loss", loss)
         return loss
 
     def test_step(self, batch):

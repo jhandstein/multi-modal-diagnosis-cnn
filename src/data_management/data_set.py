@@ -31,7 +31,7 @@ class NakoSingleFeatureDataset(Dataset):
         return feature_tensor, label
     
 
-def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8) -> tuple[NakoSingleFeatureDataset, NakoSingleFeatureDataset]:
+def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8) -> tuple[NakoSingleFeatureDataset, NakoSingleFeatureDataset, NakoSingleFeatureDataset]:
     current_sample = sample_subject_ids(n_samples)
     train_size = int(n_samples * (1 - (2* val_test_frac)))
     val_size = int(n_samples * val_test_frac)
@@ -40,27 +40,37 @@ def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8)
     val_idxs = current_sample[train_size:train_size + val_size]
     test_idxs = current_sample[train_size + val_size:]
 
-    print(f"Train idxs: {train_idxs[:5]}, Val idxs: {val_idxs[:5]}, Test idxs: {test_idxs[:5]}")
+    # print(f"Train idxs: {train_idxs[:5]}, Val idxs: {val_idxs[:5]}, Test idxs: {test_idxs[:5]}")
 
+    params = {
+        "modality": ModalityType.ANAT,
+        "feature_set": FeatureType.GM,
+        "target": "sex",
+    }
+    
     train_set = NakoSingleFeatureDataset(
         train_idxs, 
-        ModalityType.ANAT,
-        FeatureType.GM,
-        "sex",
+        **params
     )
 
     val_set = NakoSingleFeatureDataset(
         val_idxs, 
-        ModalityType.ANAT,
-        FeatureType.GM,
-        "sex",
+        **params
     )
 
     test_set = NakoSingleFeatureDataset(
         test_idxs, 
-        ModalityType.ANAT,
-        FeatureType.GM,
-        "sex",
+        **params
     )
 
+    # Print length of data sets
+    print(f"Train set size: {len(train_set)}, Val set size: {len(val_set)}, Test set size: {len(test_set)}")
+
     return train_set, val_set, test_set
+
+
+def print_details(data_set: Dataset):
+    for id, label in zip(data_set.subject_ids, data_set.labels):
+        print(id, label)
+        print(data_set[0][0].shape)
+        break
