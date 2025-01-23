@@ -55,16 +55,20 @@ class BinaryClassificationCnn2d(L.LightningModule):
         y_hat = self.all_gather(y_hat)
         
         # Reshape if needed (all_gather adds new dimension)
-        if len(y.shape) > 1:
-            y = y.reshape(-1)
-            y_hat = y_hat.reshape(-1)
-        print("Prediction shapes", y.shape, y_hat.shape)
+        y, y_hat = self._flatten_predictions(y, y_hat)
         
         # Compute metrics on CPU
-        metrics = compute_classification_metrics(y, y_hat, phase="train")
-        recompute_loss = {"recomputed_train_loss": nn.functional.binary_cross_entropy(y_hat, y)}
-        inferred_loss = {"train_loss": self.trainer.callback_metrics["train_loss_for_testing"]}
-        metrics = {**metrics, **recompute_loss, **inferred_loss}
+        loss_value = nn.functional.binary_cross_entropy(y_hat, y)
+        loss_inferred = self.trainer.callback_metrics["train_loss_for_testing"]
+
+        # metrics = compute_classification_metrics(y, y_hat, phase="train")
+        recompute_loss = {"recomputed_train_loss": loss_value}
+        inferred_loss = {"train_loss": loss_inferred}
+        metrics = {
+            # **metrics, 
+            **recompute_loss, 
+            **inferred_loss
+            }
         self.log_dict(metrics, sync_dist=True)
         
         # Clear saved outputs
@@ -115,5 +119,21 @@ class BinaryClassificationCnn2d(L.LightningModule):
         return optimizer
     
     def _debug_shapes(self, x, y):
+        """Debugging function to check the shapes of the input and labels."""
         print("input_shape", x.shape)
         print("label_shape", y.shape)
+
+    def _debug_prediction_shapes(self, y, y_hat):
+        """Debugging function to check the shapes of the predictions."""
+        print("label_shape", y.shape)
+        print("prediction_shape", y_hat.shape)
+
+    def _flatten_predictions(self, y, y_hat):
+        """Flatten the tensors if they have more than one dimension."""
+        if len(y.shape) > 1:
+            y = y.reshape(-1)
+            y_hat = y_hat.reshape(-1)
+
+        # self._debug_prediction_shapes(y, y_hat)
+        return y, y_hat
+        

@@ -26,14 +26,14 @@ def train_model():#
     batch_size = 8
     epochs = 3
 
-    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=256)
+    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=128)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Logging and callbacks
     log_dir = Path("models")
     logger = pl_loggers.CSVLogger(log_dir, name="2D_CNN")
-    callback = ValidationPrintCallback()
+    callback = ValidationPrintCallback(logger=logger)
 
     gpu_params = {
         "accelerator": "gpu" if torch.cuda.is_available() else None,

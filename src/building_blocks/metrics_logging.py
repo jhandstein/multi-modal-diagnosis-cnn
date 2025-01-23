@@ -7,9 +7,14 @@ from sklearn.metrics import auc, f1_score, precision_score, recall_score, accura
 from src.utils.cuda_utils import tensor_to_numpy
 
 class ValidationPrintCallback(Callback):
-    def __init__(self):
+    def __init__(self, logger=None):
         self.validation_losses = []
         self.best_loss = float('inf')
+        self.logger = logger
+
+    @rank_zero_only
+    def on_train_start(self, trainer, pl_module):
+        print(f"Training started. Logs will be saved to {self.logger.log_dir if self.logger else 'nowhere'}")
 
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
@@ -30,7 +35,7 @@ class ValidationPrintCallback(Callback):
 
 def compute_classification_metrics(y: torch.tensor, y_hat: torch.tensor, phase: Literal["train", "val", "test"] = "train") -> dict:
     y_np = tensor_to_numpy(y)
-    y_hat_np = tensor_to_numpy(y_hat).round() # check if rounding is necessary
+    y_hat_np = tensor_to_numpy(y_hat)#.round() # check if rounding is necessary
 
     acc = accuracy_score(y_np, y_hat_np)
     f1 = f1_score(y_np, y_hat_np)
@@ -47,3 +52,9 @@ def compute_classification_metrics(y: torch.tensor, y_hat: torch.tensor, phase: 
     }
 
     return {k: round(v, 4) for k, v in metrics.items()}
+
+class MetricsComputation:
+
+    def __init__(self, y: torch.tensor, y_hat: torch.tensor):
+        self.y = tensor_to_numpy(y)
+        self.y_hat = tensor_to_numpy(y_hat)
