@@ -1,5 +1,10 @@
+import torch
+from typing import Literal
 from lightning.pytorch.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_only
+from sklearn.metrics import auc, f1_score, precision_score, recall_score, accuracy_score
+
+from src.utils.cuda_utils import tensor_to_numpy
 
 class ValidationPrintCallback(Callback):
     def __init__(self):
@@ -22,4 +27,23 @@ class ValidationPrintCallback(Callback):
     @rank_zero_only
     def on_fit_end(self, trainer, pl_module):
         print(f"Training finished. Validation losses: {self.validation_losses}, Best loss: {self.best_loss}")
-        
+
+def compute_classification_metrics(y: torch.tensor, y_hat: torch.tensor, phase: Literal["train", "val", "test"] = "train") -> dict:
+    y_np = tensor_to_numpy(y)
+    y_hat_np = tensor_to_numpy(y_hat).round() # check if rounding is necessary
+
+    acc = accuracy_score(y_np, y_hat_np)
+    f1 = f1_score(y_np, y_hat_np)
+    # precision = precision_score(y_np, y_hat_np)
+    # recall = recall_score(y_np, y_hat_np)
+    # auc_score = auc(y_np, y_hat_np)
+
+    metrics = {
+        f"{phase}_accuracy": acc,
+        # f"{phase}_f1": f1,
+        # f"{phase}_precision": precision,
+        # f"{phase}_recall": recall,
+        # f"{phase}_auc": auc_score
+    }
+
+    return {k: round(v, 4) for k, v in metrics.items()}

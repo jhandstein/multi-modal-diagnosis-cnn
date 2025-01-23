@@ -7,7 +7,8 @@ NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_new
 FMRI_PREP_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/fmriprep")
 
 LOGS_PATH = Path("logs")
-AVAILABLE_SUBJECT_IDS = Path("src/utils/subject_ids.txt")
+# AVAILABLE_SUBJECT_IDS = Path("src/utils/subject_ids.txt")
+AVAILABLE_SUBJECT_IDS = Path(NAKO_PATH, "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_bothMRI_successfull.txt")
 
 class ModalityType(Enum):
     ANAT = "anat"
