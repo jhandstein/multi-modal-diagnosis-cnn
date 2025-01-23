@@ -35,19 +35,30 @@ def train_model():#
     logger = pl_loggers.CSVLogger(log_dir, name="2D_CNN")
     callback = ValidationPrintCallback()
 
-    trainer = L.Trainer(
-        accelerator="gpu" if torch.cuda.is_available() else None,
-        devices=num_gpus,
-        max_epochs=epochs,
-        strategy="ddp",
-        sync_batchnorm=True,
-        deterministic=True, # works together with seed_everything to ensure reproducibility across runs
-        benchmark=True, # best algorithm for your hardware, only works with homogenous input sizes
-        log_every_n_steps=1,
-        callbacks=[callback],
-        logger=logger,
-    )
+    gpu_params = {
+        "accelerator": "gpu" if torch.cuda.is_available() else None,
+        "devices": num_gpus,
+        "strategy": "ddp",
+        "sync_batchnorm": True,
+        "benchmark": True, # best algorithm for your hardware, only works with homogenous input sizes
+    }
 
+    training_params = {
+        "deterministic": True, # works together with seed_everything to ensure reproducibility across runs
+        "max_epochs": epochs,
+    }
+
+    logging_params = {
+        "log_every_n_steps": 1,
+        "callbacks": [callback],
+        "logger": logger,
+    }
+
+    trainer = L.Trainer(
+        **gpu_params,
+        **training_params,
+        **logging_params
+    )
 
     trainer.fit(
         model=lightning_model, 

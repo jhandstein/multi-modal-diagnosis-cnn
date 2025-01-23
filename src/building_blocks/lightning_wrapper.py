@@ -13,32 +13,29 @@ class BinaryClassificationCnn2d(L.LightningModule):
         self.train_step_outputs = []
         self.validation_step_outputs = []
         # print(self.device)
+        self.logging_params = {
+            "sync_dist": False,
+            "on_epoch": True,
+            "on_step": False,
+        }
 
     def forward(self, x):
         return self.model(x)
         
     def training_step(self, batch):
+        # Unpacking and forward pass
         x, y = batch
-        
-        # Debug shapes and types
-        # self._debug_shapes(x, y)
-        
-        # Forward pass
         y_hat = self.model(x)
-        
-        # Convert and validate labels
-        y = y.float()
+                
+        # Validate labels for binary classification
         if not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
-        
-        # TODO: check for y_hat values??
-        
+                
         # Logging the metrics
         loss = nn.functional.binary_cross_entropy(y_hat, y)
-        
-        self.log("train_loss_for_testing", loss, on_epoch=True, on_step=False)
+        self.log("train_loss_for_testing", loss, **self.logging_params)
 
-        # Store predictions for later use
+        # Store predictions for later metric computation
         self.train_step_outputs.append(
             {
                 "y": y,
@@ -78,7 +75,7 @@ class BinaryClassificationCnn2d(L.LightningModule):
         y_hat = self.model(x)
         loss = nn.functional.binary_cross_entropy(y_hat, y)
 
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, **self.logging_params)
 
         return loss
     
@@ -109,7 +106,7 @@ class BinaryClassificationCnn2d(L.LightningModule):
         x, y = batch
         y_hat = self.model(x)
         loss = nn.functional.binary_cross_entropy(y, y_hat)
-        # Logging to TensorBoard (if installed) by default
+        
         # self.log("test_loss", loss)
         return loss
     
