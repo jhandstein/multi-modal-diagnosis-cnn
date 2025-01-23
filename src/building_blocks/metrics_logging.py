@@ -16,18 +16,44 @@ class ValidationPrintCallback(Callback):
     def on_train_start(self, trainer, pl_module):
         print(f"Training started. Logs will be saved to {self.logger.log_dir if self.logger else 'nowhere'}")
 
+    # @rank_zero_only
+    # def on_validation_epoch_end(self, trainer, pl_module):
+
+    #     metrics = trainer.callback_metrics
+    #     print("Debug - Available metrics:", metrics.keys())
+
+    #     # Access the logged validation loss
+    #     val_loss = trainer.callback_metrics.get('val_loss')
+    #     print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
+
+    #     self.validation_losses.append(val_loss)
+    #     if val_loss < self.best_loss:
+    #         self.best_loss = val_loss
+    #         print("New best loss!")
+    #     else:
+    #         print("No improvement in loss")
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
-        # Access the logged validation loss
-        val_loss = trainer.callback_metrics.get('val_loss')
-        print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
-
-        self.validation_losses.append(val_loss)
-        if val_loss < self.best_loss:
-            self.best_loss = val_loss
-            print("New best loss!")
+        metrics = trainer.callback_metrics
+        # print("Debug - Available metrics:", metrics.keys())
+        
+        # Try both methods of accessing val_loss
+        val_loss = metrics.get('val_loss')
+        # val_loss_alt = trainer.logged_metrics.get('val_loss')
+        
+        # print(f"Debug - val_loss from callback_metrics: {val_loss}")
+        # print(f"Debug - val_loss from logged_metrics: {val_loss_alt}")
+        
+        if val_loss is not None:
+            print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
+            self.validation_losses.append(val_loss)
+            if val_loss < self.best_loss:
+                self.best_loss = val_loss
+                print("New best loss!")
+            else:
+                print("No improvement in loss")
         else:
-            print("No improvement in loss")
+            print("No validation loss logged")
 
     @rank_zero_only
     def on_fit_end(self, trainer, pl_module):

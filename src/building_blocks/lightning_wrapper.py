@@ -12,9 +12,8 @@ class BinaryClassificationCnn2d(L.LightningModule):
         self.model = ConvBranch2d()
         self.train_step_outputs = []
         self.validation_step_outputs = []
-        # print(self.device)
         self.logging_params = {
-            "sync_dist": False,
+            "sync_dist": True,
             "on_epoch": True,
             "on_step": False,
         }
@@ -31,17 +30,14 @@ class BinaryClassificationCnn2d(L.LightningModule):
         if not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
                 
-        # Logging the metrics
+        # Compute loss
         loss = nn.functional.binary_cross_entropy(y_hat, y)
-        self.log("train_loss_for_testing", loss, **self.logging_params)
 
         # Store predictions for later metric computation
-        self.train_step_outputs.append(
-            {
+        self.train_step_outputs.append({
                 "y": y,
                 "y_hat": y_hat,
-            }
-        )
+            })
         
         return loss
     
@@ -57,19 +53,14 @@ class BinaryClassificationCnn2d(L.LightningModule):
         # Reshape if needed (all_gather adds new dimension)
         y, y_hat = self._flatten_predictions(y, y_hat)
         
-        # Compute metrics on CPU
-        loss_value = nn.functional.binary_cross_entropy(y_hat, y)
-        loss_inferred = self.trainer.callback_metrics["train_loss_for_testing"]
-
+        # Compute metrics for whole epoch
+        epoch_loss = nn.functional.binary_cross_entropy(y_hat, y)
         # metrics = compute_classification_metrics(y, y_hat, phase="train")
-        recompute_loss = {"recomputed_train_loss": loss_value}
-        inferred_loss = {"train_loss": loss_inferred}
-        metrics = {
+        metrics_dict = {
+            "train_loss": epoch_loss, 
             # **metrics, 
-            **recompute_loss, 
-            **inferred_loss
             }
-        self.log_dict(metrics, sync_dist=True)
+        self.log_dict(metrics_dict, **self.logging_params)
         
         # Clear saved outputs
         self.train_step_outputs.clear()
@@ -79,30 +70,36 @@ class BinaryClassificationCnn2d(L.LightningModule):
         y_hat = self.model(x)
         loss = nn.functional.binary_cross_entropy(y_hat, y)
 
-        self.log("val_loss", loss, **self.logging_params)
+        # Store predictions for later metric computation
+        self.validation_step_outputs.append({
+                "y": y,
+                "y_hat": y_hat,
+            })
 
         return loss
     
     def on_validation_epoch_end(self):
         # Gather predictions from all GPUs
-        # y = torch.cat([x["y"] for x in self.validation_step_outputs])
-        # y_hat = torch.cat([x["y_hat"] for x in self.validation_step_outputs])
+        y = torch.cat([x["y"] for x in self.validation_step_outputs])
+        y_hat = torch.cat([x["y_hat"] for x in self.validation_step_outputs])
         
-        # # Gather across GPUs
-        # y = self.all_gather(y)
-        # y_hat = self.all_gather(y_hat)
+        # Gather across GPUs
+        y = self.all_gather(y)
+        y_hat = self.all_gather(y_hat)
         
         # # Reshape if needed (all_gather adds new dimension)
-        # if len(y.shape) > 1:
-        #     y = y.reshape(-1)
-        #     y_hat = y_hat.reshape(-1)
-        
-        # # Compute metrics on CPU
+        y, y_hat = self._flatten_predictions(y, y_hat)
+
+        # # Compute metrics for whole epoch
         # metrics = compute_classification_metrics(y, y_hat, phase="val")
-        # self.log_dict(metrics)
-        
+        metrics_dict = {
+            "val_loss": nn.functional.binary_cross_entropy(y_hat, y),
+            # **metrics,
+        }
+        self.log_dict(metrics_dict, **self.logging_params)
+                
         # # Clear saved outputs
-        # self.validation_step_outputs.clear()
+        self.validation_step_outputs.clear()
         pass
 
     def test_step(self, batch):
