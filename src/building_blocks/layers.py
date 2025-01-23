@@ -40,6 +40,7 @@ class ConvBranch2d(nn.Module):
         x = self.fc1(x)
         x = self.fc2(x)
         x = self.sigmoid(x)
-        return x
+        # Squeeze the output to match the shape of the labels
+        return x.squeeze()
     
 

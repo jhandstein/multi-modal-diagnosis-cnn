@@ -1,6 +1,0 @@
-effective batch size: batch_size * gpus * num_nodes
-- a single machine is called node
-
-
-ddp (DistributedDataParallel):
-- every gpu gets copy of data and subset of the data

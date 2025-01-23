@@ -25,7 +25,6 @@ class BinaryClassificationCnn2d(L.LightningModule):
         
         # Forward pass
         y_hat = self.model(x)
-        y_hat = y_hat.squeeze()
         
         # Convert and validate labels
         y = y.float()
@@ -77,7 +76,6 @@ class BinaryClassificationCnn2d(L.LightningModule):
     def validation_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        y_hat = y_hat.squeeze()
         loss = nn.functional.binary_cross_entropy(y_hat, y)
 
         self.log("val_loss", loss)
@@ -110,7 +108,6 @@ class BinaryClassificationCnn2d(L.LightningModule):
         # test_step defines the test loop.
         x, y = batch
         y_hat = self.model(x)
-        y_hat = y_hat.squeeze()
         loss = nn.functional.binary_cross_entropy(y, y_hat)
         # Logging to TensorBoard (if installed) by default
         # self.log("test_loss", loss)
