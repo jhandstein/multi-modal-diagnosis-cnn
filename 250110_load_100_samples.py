@@ -5,14 +5,14 @@ from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
 from src.data_management.data_set import prepare_standard_data_sets
-from src.building_blocks.metrics_logging import ValidationPrintCallback
+from src.building_blocks.metrics_logging import ValidationPrintCallback, process_metrics_file
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import BinaryClassificationCnn2d
 from src.utils.cuda_utils import check_cuda
 
 
 
-def train_model():#
+def train_model():
     """Handles all the logic for training the model."""
 
     # Set seed for reproducibility
@@ -24,9 +24,9 @@ def train_model():#
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 8
-    epochs = 3
+    epochs = 100
 
-    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=128)
+    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=256)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
@@ -65,8 +65,14 @@ def train_model():#
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
-   
-    # TODO: Test model and log train loss
+    
+    # Process metrics
+    metrics_file = Path(logger.log_dir, "metrics.csv")
+    processed_file = Path(logger.log_dir, "metrics_processed.csv")
+    process_metrics_file(metrics_file, processed_file)
+
+
+    # TODO: Test model
     
 
 

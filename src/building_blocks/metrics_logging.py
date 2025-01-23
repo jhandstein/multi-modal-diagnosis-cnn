@@ -2,7 +2,9 @@ import torch
 from typing import Literal
 from lightning.pytorch.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_only
-from sklearn.metrics import auc, f1_score, precision_score, recall_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
+import pandas as pd
+from pathlib import Path
 
 from src.utils.cuda_utils import tensor_to_numpy
 
@@ -16,42 +18,19 @@ class ValidationPrintCallback(Callback):
     def on_train_start(self, trainer, pl_module):
         print(f"Training started. Logs will be saved to {self.logger.log_dir if self.logger else 'nowhere'}")
 
-    # @rank_zero_only
-    # def on_validation_epoch_end(self, trainer, pl_module):
-
-    #     metrics = trainer.callback_metrics
-    #     print("Debug - Available metrics:", metrics.keys())
-
-    #     # Access the logged validation loss
-    #     val_loss = trainer.callback_metrics.get('val_loss')
-    #     print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
-
-    #     self.validation_losses.append(val_loss)
-    #     if val_loss < self.best_loss:
-    #         self.best_loss = val_loss
-    #         print("New best loss!")
-    #     else:
-    #         print("No improvement in loss")
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
-        metrics = trainer.callback_metrics
-        # print("Debug - Available metrics:", metrics.keys())
-        
-        # Try both methods of accessing val_loss
+        metrics = trainer.callback_metrics        
         val_loss = metrics.get('val_loss')
-        # val_loss_alt = trainer.logged_metrics.get('val_loss')
-        
-        # print(f"Debug - val_loss from callback_metrics: {val_loss}")
-        # print(f"Debug - val_loss from logged_metrics: {val_loss_alt}")
-        
+
         if val_loss is not None:
             print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
             self.validation_losses.append(val_loss)
             if val_loss < self.best_loss:
                 self.best_loss = val_loss
                 print("New best loss!")
-            else:
-                print("No improvement in loss")
+            # else:
+            #     print("No improvement in loss")
         else:
             print("No validation loss logged")
 
@@ -59,28 +38,56 @@ class ValidationPrintCallback(Callback):
     def on_fit_end(self, trainer, pl_module):
         print(f"Training finished. Validation losses: {self.validation_losses}, Best loss: {self.best_loss}")
 
-def compute_classification_metrics(y: torch.tensor, y_hat: torch.tensor, phase: Literal["train", "val", "test"] = "train") -> dict:
-    y_np = tensor_to_numpy(y)
-    y_hat_np = tensor_to_numpy(y_hat)#.round() # check if rounding is necessary
+class ClassificationMetrics:
+    def __init__(self, phase: Literal["train", "val", "test"] = "train"):
+        self.phase = phase
 
-    acc = accuracy_score(y_np, y_hat_np)
-    f1 = f1_score(y_np, y_hat_np)
-    # precision = precision_score(y_np, y_hat_np)
-    # recall = recall_score(y_np, y_hat_np)
-    # auc_score = auc(y_np, y_hat_np)
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor) -> dict:
+        """Compute classification metrics for given predictions and labels."""
+        # Convert to numpy
+        y = tensor_to_numpy(y)
+        y_hat = tensor_to_numpy(y_hat)
+        
+        return self.compute_classification_metrics(y, y_hat)
 
-    metrics = {
-        f"{phase}_accuracy": acc,
-        # f"{phase}_f1": f1,
-        # f"{phase}_precision": precision,
-        # f"{phase}_recall": recall,
-        # f"{phase}_auc": auc_score
-    }
+    def compute_classification_metrics(self, y: torch.tensor, y_hat: torch.tensor) -> dict:
+        """Compute classification metrics using stored predictions and labels."""
+        y_hat_thresh = (y_hat > 0.5).astype(int)  # threshold at 0.5
 
-    return {k: round(v, 4) for k, v in metrics.items()}
+        metrics = {
+            f"{self.phase}_accuracy": accuracy_score(y, y_hat_thresh),
+            f"{self.phase}_f1": f1_score(y, y_hat_thresh),
+            f"{self.phase}_precision": precision_score(y, y_hat_thresh, zero_division=0),
+            f"{self.phase}_recall": recall_score(y, y_hat_thresh),
+            f"{self.phase}_auc": roc_auc_score(y, y_hat)  # use raw probabilities for AUC
+        }
 
-class MetricsComputation:
+        return {k: round(v, 4) for k, v in metrics.items()}
+    
 
-    def __init__(self, y: torch.tensor, y_hat: torch.tensor):
-        self.y = tensor_to_numpy(y)
-        self.y_hat = tensor_to_numpy(y_hat)
+def process_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFrame:
+    """Process metrics CSV file to combine matching epochs and round values.
+    
+    Args:
+        csv_path: Path to input CSV file
+        output_path: Optional path to save processed CSV
+    
+    Returns:
+        Processed DataFrame
+    """
+    # Read CSV
+    df = pd.read_csv(csv_path)
+    
+    # Group by epoch and step, combining all metrics
+    df = df.groupby(['epoch', 'step']).first().reset_index()
+    df = df.drop(columns=['step'])
+    
+    # Round all numeric columns to 4 decimals
+    numeric_cols = df.select_dtypes(include=['float64']).columns
+    df[numeric_cols] = df[numeric_cols].round(4)
+    
+    # Save if output path provided
+    if output_path:
+        df.to_csv(output_path, index=False)
+        
+    return df

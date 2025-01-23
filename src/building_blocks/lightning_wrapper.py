@@ -3,7 +3,7 @@ import lightning as L
 from torch import optim, nn
 import torch
 
-from src.building_blocks.metrics_logging import compute_classification_metrics
+from src.building_blocks.metrics_logging import ClassificationMetrics
 from src.building_blocks.layers import ConvBranch2d
  
 class BinaryClassificationCnn2d(L.LightningModule):
@@ -56,9 +56,10 @@ class BinaryClassificationCnn2d(L.LightningModule):
         # Compute metrics for whole epoch
         epoch_loss = nn.functional.binary_cross_entropy(y_hat, y)
         # metrics = compute_classification_metrics(y, y_hat, phase="train")
+        metrics = ClassificationMetrics(phase="train")
         metrics_dict = {
             "train_loss": epoch_loss, 
-            # **metrics, 
+            **metrics(y, y_hat), 
             }
         self.log_dict(metrics_dict, **self.logging_params)
         
@@ -92,9 +93,10 @@ class BinaryClassificationCnn2d(L.LightningModule):
 
         # # Compute metrics for whole epoch
         # metrics = compute_classification_metrics(y, y_hat, phase="val")
+        metrics = ClassificationMetrics(phase="val")
         metrics_dict = {
             "val_loss": nn.functional.binary_cross_entropy(y_hat, y),
-            # **metrics,
+            **metrics(y, y_hat),
         }
         self.log_dict(metrics_dict, **self.logging_params)
                 
@@ -112,8 +114,15 @@ class BinaryClassificationCnn2d(L.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        optimizer = optim.Adam(self.parameters(), lr=1e-4)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+        return {"optimizer": optimizer, "lr_scheduler": 
+                {
+                    "scheduler": scheduler,
+                    "interval": "epoch", 
+                    "metric": "val_loss", # use validation loss to reduce learning rate TODO: necessary?
+                    "frequency": 1, # every epoch
+                }}
     
     def _debug_shapes(self, x, y):
         """Debugging function to check the shapes of the input and labels."""
