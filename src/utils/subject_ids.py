@@ -24,4 +24,4 @@ def load_subject_ids_from_file() -> list:
     
 def sample_subject_ids(n: int) -> list:
     """Samples n subject IDs from the list of available subject IDs"""
-    return sorted(sample(load_subject_ids_from_file(), n))
+    return sample(load_subject_ids_from_file(), n)

@@ -36,9 +36,14 @@ def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8)
     train_size = int(n_samples * (1 - (2* val_test_frac)))
     val_size = int(n_samples * val_test_frac)
 
+    # TODO: Device a better way to split the data (eg., k-fold cross-validation and stratified sampling)
     train_idxs = current_sample[:train_size]
     val_idxs = current_sample[train_size:train_size + val_size]
     test_idxs = current_sample[train_size + val_size:]
+
+    train_idxs = sorted(train_idxs)
+    val_idxs = sorted(val_idxs)
+    test_idxs = sorted(test_idxs)
 
     # print(f"Train idxs: {train_idxs[:5]}, Val idxs: {val_idxs[:5]}, Test idxs: {test_idxs[:5]}")
 
