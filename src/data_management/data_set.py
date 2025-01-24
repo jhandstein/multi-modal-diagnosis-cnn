@@ -74,3 +74,4 @@ def print_details(data_set: Dataset):
         print(id, label)
         print(data_set[0][0].shape)
         break
+    

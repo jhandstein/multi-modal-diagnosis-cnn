@@ -120,7 +120,6 @@ class BinaryClassificationCnn2d(L.LightningModule):
                 {
                     "scheduler": scheduler,
                     "interval": "epoch", 
-                    "metric": "val_loss", # use validation loss to reduce learning rate TODO: necessary?
                     "frequency": 1, # every epoch
                 }}
     
