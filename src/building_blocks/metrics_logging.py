@@ -108,7 +108,10 @@ class ExperimentTrackingCallback(Callback):
         self.dataset_info = {
             "train_indices": train_set.subject_ids if train_set else None,
             "val_indices": val_set.subject_ids if val_set else None,
-            "test_indices": test_set.subject_ids if test_set else None
+            "test_indices": test_set.subject_ids if test_set else None,
+            "len_train": len(train_set) if train_set else None,
+            "len_val": len(val_set) if val_set else None,
+            "len_test": len(test_set) if test_set else None,
         }
 
     @rank_zero_only
@@ -155,8 +158,7 @@ class ExperimentTrackingCallback(Callback):
             },
             "dataset_splits": self.dataset_info,
             "metrics": {
-                "validation_losses": self.validation_losses,
-                "best_validation_loss": float(self.best_loss)
+                "validation_losses": [tensor.item() for tensor in self.validation_losses],
             }
         }
 
@@ -164,3 +166,4 @@ class ExperimentTrackingCallback(Callback):
             log_file = Path(self.logger.log_dir) / "experiment_info.json"
             with open(log_file, 'w') as f:
                 json.dump(experiment_info, f, indent=4)
+                

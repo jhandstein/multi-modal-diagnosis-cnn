@@ -25,6 +25,7 @@ def train_model():
     num_gpus = torch.cuda.device_count()
     batch_size = 8 # should be maximum val_set size / num_gpus
     epochs = 100
+    sample_size = 16384
 
     # Experiment setup
     if epochs > 10:
@@ -38,7 +39,7 @@ def train_model():
     model_name = f"CNN_{dim}_{modality}_{feature_map}"
 
     # TODO: replace with k-fold cross-validation? 4 folds in publication
-    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=1024)
+    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
