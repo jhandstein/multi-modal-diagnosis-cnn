@@ -18,10 +18,13 @@ class FeatureMapFile:
         self.map_type = map_type
 
     def get_path(self) -> Path:
+        # TODO: refine selection of paths (implement switch case)
         if self.scan_type == ModalityType.ANAT:
             return self._get_anat_path()
         elif self.scan_type == ModalityType.FUNC:
             return self._get_func_path()
+        elif self.scan_type == ModalityType.RAW:
+            return self._get_smri_path()
         else:
             raise ValueError("Invalid scan type")
     
@@ -45,3 +48,6 @@ class FeatureMapFile:
 
     def _get_func_path(self) -> Path:
         return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type.value}.nii.gz")
+    
+    def _get_smri_path(self) -> Path:
+        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_desc-preproc_T1w.nii.gz")

@@ -4,11 +4,13 @@ import lightning as L
 from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
+from src.data_management.feature_map_files import FeatureMapFile
 from src.data_management.data_set import prepare_standard_data_sets
 from src.building_blocks.metrics_logging import ExperimentTrackingCallback, ValidationPrintCallback, process_metrics_file
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import BinaryClassificationCnn2d
 from src.utils.cuda_utils import check_cuda
+from src.utils.config import FeatureType, ModalityType
 
 
 
@@ -98,5 +100,13 @@ def print_ds_indices():
 if __name__ == "__main__":
     
     # check_cuda()
+
+    # compare data dimensions for raw and feature maps
+    # fm = FeatureMapFile(130926, ModalityType.RAW, FeatureType.SMRI)
+    # print(fm.get_path())
+    # print(fm.print_stats())
+    # fm2 = FeatureMapFile(130926, ModalityType.ANAT, FeatureType.GM)
+    # print(fm2.get_path())
+    # print(fm2.print_stats())
+
     train_model()
-    # print_ds_indices()

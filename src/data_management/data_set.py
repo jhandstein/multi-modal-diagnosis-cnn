@@ -45,8 +45,6 @@ def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8)
     val_idxs = sorted(val_idxs)
     test_idxs = sorted(test_idxs)
 
-    # print(f"Train idxs: {train_idxs[:5]}, Val idxs: {val_idxs[:5]}, Test idxs: {test_idxs[:5]}")
-
     params = {
         "modality": ModalityType.ANAT,
         "feature_set": FeatureType.GM,

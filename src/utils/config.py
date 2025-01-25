@@ -11,10 +11,16 @@ LOGS_PATH = Path("logs")
 AVAILABLE_SUBJECT_IDS = Path(NAKO_PATH, "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_bothMRI_successfull.txt")
 
 class ModalityType(Enum):
+    RAW = "raw"
     ANAT = "anat"
     FUNC = "func"
 
 class FeatureType(Enum):
+    # raw data
+    SMRI = "smri"
+    FMRI = "fmri"
+
+    # feature maps
     GM = "GM"
     WM = "WM"
     CSF = "CSF"

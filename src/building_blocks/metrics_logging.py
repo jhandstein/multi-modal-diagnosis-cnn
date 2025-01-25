@@ -106,6 +106,8 @@ class ExperimentTrackingCallback(Callback):
         
         # Store dataset indices
         self.dataset_info = {
+            "modality": train_set.modalities.value if train_set else None,
+            "feature_set": train_set.feature_sets.value if train_set else None,
             "train_indices": train_set.subject_ids if train_set else None,
             "val_indices": val_set.subject_ids if val_set else None,
             "test_indices": test_set.subject_ids if test_set else None,
@@ -156,10 +158,11 @@ class ExperimentTrackingCallback(Callback):
                 "average_epoch_time_seconds": sum(self.epoch_times) / len(self.epoch_times) if self.epoch_times else 0,
                 "epochs_completed": len(self.epoch_times)
             },
-            "dataset_splits": self.dataset_info,
             "metrics": {
                 "validation_losses": [tensor.item() for tensor in self.validation_losses],
-            }
+                "best_loss": self.best_loss.item() if self.best_loss != float('inf') else None
+            },
+            "dataset_info": self.dataset_info,
         }
 
         if self.logger and self.logger.log_dir:
