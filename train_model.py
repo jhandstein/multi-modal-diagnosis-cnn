@@ -10,7 +10,7 @@ from src.building_blocks.metrics_logging import ExperimentTrackingCallback, Vali
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import BinaryClassificationCnn2d
 from src.utils.cuda_utils import check_cuda
-from src.utils.file_dimensions import raw_and_map_sizes
+from src.utils.calc_size_after_conv import calc_convolved_size
 
 
 
@@ -42,6 +42,7 @@ def train_model():
     else:
         log_dir = Path("models_test")
 
+    # Model name for logging
     dim = "2D"
     modality = train_set.modalitiy.value
     feature_map = train_set.feature_set.value
@@ -106,5 +107,6 @@ if __name__ == "__main__":
     # check_cuda()
 
     # compare data dimensions for raw and feature maps
-    raw_and_map_sizes(130926)
     # train_model()
+    calc_convolved_size(130626)
+

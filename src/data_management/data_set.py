@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import Dataset
 
-from src.data_management.feature_map_files import FeatureMapFile
+from data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureType, ModalityType
 from src.utils.load_targets import extract_target
 from src.utils.subject_ids import sample_subject_ids
@@ -19,8 +19,8 @@ class NakoSingleFeatureDataset(Dataset):
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
-        feature_file = FeatureMapFile(subject_id, self.modalitiy, self.feature_set)
-        feature_array = feature_file.load_array()
+        image_file = MriImageFile(subject_id, self.modalitiy, self.feature_set)
+        feature_array = image_file.load_array()
         feature_tensor = torch.from_numpy(feature_array).float()
         # extract only the middle slice 
         feature_tensor = feature_tensor[feature_tensor.shape[0]//2]

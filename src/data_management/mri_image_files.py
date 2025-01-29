@@ -6,9 +6,9 @@ from pathlib import Path
 
 from src.utils.config import FMRI_PREP_FULL_SAMPLE, FeatureType, ModalityType
 
-class FeatureMapFile:
+class MriImageFile:
     """
-    Class to handle the loading of feature map files from the NAKO dataset
+    Class to handle the loading of image / feature map files from the NAKO dataset
     """
 
     def __init__(self, subject_id: int, scan_type: ModalityType, map_type: FeatureType):
@@ -38,6 +38,11 @@ class FeatureMapFile:
         """Loads the middle slice of the feature map file as a numpy array"""
         img = nib.load(self.get_path())
         return img.get_fdata()[img.shape[0]//2]
+    
+    def get_size(self) -> tuple:
+        """Returns the size of the feature map file"""
+        img = nib.load(self.get_path())
+        return img.shape
     
     def print_stats(self):
         """Function to show some basic statistics about the image without loading the whole array"""
