@@ -18,6 +18,7 @@ class FeatureMapFile:
         self.map_type = map_type
 
     def get_path(self) -> Path:
+        """Returns the path to the feature map file"""
         # TODO: refine selection of paths (implement switch case)
         if self.scan_type == ModalityType.ANAT:
             return self._get_anat_path()
@@ -29,10 +30,12 @@ class FeatureMapFile:
             raise ValueError("Invalid scan type")
     
     def load_array(self) -> np.ndarray:
+        """Loads the feature map file as a numpy array"""
         img = nib.load(self.get_path())
         return img.get_fdata()
     
     def load_middle_slice(self) -> np.ndarray:
+        """Loads the middle slice of the feature map file as a numpy array"""
         img = nib.load(self.get_path())
         return img.get_fdata()[img.shape[0]//2]
     

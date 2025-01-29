@@ -5,13 +5,12 @@ from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
 from src.plots.save_training_plot import plot_training_metrics
-from src.data_management.feature_map_files import FeatureMapFile
 from src.data_management.data_set import prepare_standard_data_sets
 from src.building_blocks.metrics_logging import ExperimentTrackingCallback, ValidationPrintCallback, process_metrics_file
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import BinaryClassificationCnn2d
 from src.utils.cuda_utils import check_cuda
-from src.utils.config import FeatureType, ModalityType
+from src.utils.file_dimensions import raw_and_map_sizes
 
 
 
@@ -91,6 +90,7 @@ def train_model():
     processed_file = Path(logger.log_dir, "metrics_processed.csv")
     process_metrics_file(metrics_file, processed_file)
 
+    plot_training_metrics(processed_file)
 
     # TODO: Test model
     
@@ -106,12 +106,5 @@ if __name__ == "__main__":
     # check_cuda()
 
     # compare data dimensions for raw and feature maps
-    # fm = FeatureMapFile(130926, ModalityType.RAW, FeatureType.SMRI)
-    # print(fm.get_path())
-    # print(fm.print_stats())
-    # fm2 = FeatureMapFile(130926, ModalityType.ANAT, FeatureType.GM)
-    # print(fm2.get_path())
-    # print(fm2.print_stats())
-
+    raw_and_map_sizes(130926)
     # train_model()
-    plot_training_metrics(Path("models/CNN_2D_sMRI_GM/version_0/metrics_processed.csv"))
