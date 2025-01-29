@@ -106,8 +106,8 @@ class ExperimentTrackingCallback(Callback):
         
         # Store dataset indices
         self.dataset_info = {
-            "modality": train_set.modalities.value if train_set else None,
-            "feature_set": train_set.feature_sets.value if train_set else None,
+            "modality": train_set.modalitiy.value if train_set else None,
+            "feature_set": train_set.feature_set.value if train_set else None,
             "train_indices": train_set.subject_ids if train_set else None,
             "val_indices": val_set.subject_ids if val_set else None,
             "test_indices": test_set.subject_ids if test_set else None,
@@ -153,9 +153,9 @@ class ExperimentTrackingCallback(Callback):
             "timing": {
                 "start_time": self.start_time.strftime('%Y-%m-%d %H:%M:%S'),
                 "end_time": end_time.strftime('%Y-%m-%d %H:%M:%S'),
-                "total_duration_seconds": duration.total_seconds(),
-                "total_duration_minutes": duration.total_seconds() / 60,
-                "average_epoch_time_seconds": sum(self.epoch_times) / len(self.epoch_times) if self.epoch_times else 0,
+                "total_duration_seconds": round(duration.total_seconds(), 2),
+                "total_duration_minutes": round(duration.total_seconds() / 60, 2),
+                "average_epoch_time_seconds": round(sum(self.epoch_times) / len(self.epoch_times, 2)) if self.epoch_times else 0,
                 "epochs_completed": len(self.epoch_times)
             },
             "metrics": {

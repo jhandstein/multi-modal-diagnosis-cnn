@@ -4,6 +4,7 @@ import lightning as L
 from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
+from src.plots.save_training_plot import plot_training_metrics
 from src.data_management.feature_map_files import FeatureMapFile
 from src.data_management.data_set import prepare_standard_data_sets
 from src.building_blocks.metrics_logging import ExperimentTrackingCallback, ValidationPrintCallback, process_metrics_file
@@ -28,7 +29,14 @@ def train_model():
     batch_size = 8 # should be maximum val_set size / num_gpus
     epochs = 100
     sample_size = 16384
+    # sample_size = 256
 
+    # Prepare data sets and loaders
+    # TODO: replace with k-fold cross-validation? 4 folds in publication
+    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
+    train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
+    val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
+    
     # Experiment setup
     if epochs > 10:
         log_dir = Path("models")
@@ -36,14 +44,10 @@ def train_model():
         log_dir = Path("models_test")
 
     dim = "2D"
-    modality = "sMRI"
-    feature_map = "GM"
+    modality = train_set.modalitiy.value
+    feature_map = train_set.feature_set.value
     model_name = f"CNN_{dim}_{modality}_{feature_map}"
 
-    # TODO: replace with k-fold cross-validation? 4 folds in publication
-    train_set, val_set, test_set = prepare_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
-    train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
-    val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
@@ -109,4 +113,5 @@ if __name__ == "__main__":
     # print(fm2.get_path())
     # print(fm2.print_stats())
 
-    train_model()
+    # train_model()
+    plot_training_metrics(Path("models/CNN_2D_sMRI_GM/version_0/metrics_processed.csv"))

@@ -10,8 +10,8 @@ class NakoSingleFeatureDataset(Dataset):
     def __init__(self, subject_ids: int, modality: ModalityType, feature_set: FeatureType, target: str):
         self.subject_ids = subject_ids
         self.labels = extract_target(target, subject_ids)
-        self.modalities = modality
-        self.feature_sets = feature_set
+        self.modalitiy = modality
+        self.feature_set = feature_set
         
 
     def __len__(self):
@@ -19,7 +19,7 @@ class NakoSingleFeatureDataset(Dataset):
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
-        feature_file = FeatureMapFile(subject_id, self.modalities, self.feature_sets)
+        feature_file = FeatureMapFile(subject_id, self.modalitiy, self.feature_set)
         feature_array = feature_file.load_array()
         feature_tensor = torch.from_numpy(feature_array).float()
         # extract only the middle slice 
