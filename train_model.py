@@ -8,10 +8,11 @@ from lightning.pytorch import loggers as pl_loggers
 
 from src.plots.save_training_plot import plot_training_metrics
 from src.data_management.data_set import prepare_standard_data_sets
-from src.building_blocks.metrics_logging import ExperimentTrackingCallback, ValidationPrintCallback, process_metrics_file
+from src.building_blocks.metrics_callbacks import ExperimentTrackingCallback, ValidationPrintCallback
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
 from src.utils.cuda_utils import check_cuda
+from src.utils.process_metrics import process_metrics_file
 
 
 
@@ -26,7 +27,8 @@ def train_model():
     batch_size = 8 # should be maximum val_set size / num_gpus
     epochs = 3
     # sample_size = 16384
-    sample_size = 256
+    sample_size = 1024
+    task = "classification"
 
     # Prepare data sets and loaders
     # TODO: replace with k-fold cross-validation? 4 folds in publication
@@ -35,7 +37,7 @@ def train_model():
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Declare lightning wrapper model
-    lightning_model = LightningWrapper2dCnnClassification(train_set.data_shape)
+    lightning_model = LightningWrapper2dCnnClassification(train_set.data_shape, task=task)
     
     # Experiment setup
     if epochs > 10:
@@ -47,7 +49,8 @@ def train_model():
     dim = "2D"
     modality = train_set.modalitiy.value
     feature_map = train_set.feature_set.value
-    model_name = f"CNN_{dim}_{modality}_{feature_map}"
+    target = train_set.target
+    model_name = f"CNN_{dim}_{modality}_{feature_map}_{task}_{target}"
 
 
     # Logging and callbacks
@@ -109,5 +112,4 @@ if __name__ == "__main__":
     
     # check_cuda()
 
-    # compare data dimensions for raw and feature maps
     train_model()

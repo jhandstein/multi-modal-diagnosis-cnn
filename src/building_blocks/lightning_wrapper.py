@@ -1,15 +1,24 @@
 # https://lightning.ai/docs/pytorch/stable/starter/introduction.html
 import lightning as L
+from typing import Literal
 from torch import optim, nn
 import torch
 
-from src.building_blocks.metrics_logging import ClassificationMetrics
+from src.building_blocks.compute_metrics import MetricsFactory
 from src.building_blocks.layers import ConvBranch2d
  
 class LightningWrapper2dCnnClassification(L.LightningModule):
-    def __init__(self, input_shape: tuple):
+    def __init__(self, input_shape: tuple, task: Literal["classification", "regression"]):
         super().__init__()
-        self.model = ConvBranch2d(input_shape)
+        self.task = task
+
+        # Training building blocks
+        self.model = ConvBranch2d(input_shape, task=self.task)
+        self.loss_func = nn.BCELoss() if task == "classification" else nn.MSELoss()
+        self.train_metrics = MetricsFactory.create_metrics(task, "train")
+        self.val_metrics = MetricsFactory.create_metrics(task, "val")
+        
+        # Training set up
         self.train_step_outputs = []
         self.validation_step_outputs = []
         self.logging_params = {
@@ -27,11 +36,11 @@ class LightningWrapper2dCnnClassification(L.LightningModule):
         y_hat = self.model(x)
                 
         # Validate labels for binary classification
-        if not ((y == 0) | (y == 1)).all():
+        if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
                 
         # Compute loss
-        loss = nn.functional.binary_cross_entropy(y_hat, y)
+        loss = self.loss_func(y_hat, y)
 
         # Store predictions for later metric computation
         self.train_step_outputs.append({
@@ -54,12 +63,10 @@ class LightningWrapper2dCnnClassification(L.LightningModule):
         y, y_hat = self._flatten_predictions(y, y_hat)
         
         # Compute metrics for whole epoch
-        epoch_loss = nn.functional.binary_cross_entropy(y_hat, y)
-        # metrics = compute_classification_metrics(y, y_hat, phase="train")
-        metrics = ClassificationMetrics(phase="train")
+        epoch_loss = self.loss_func(y_hat, y)
         metrics_dict = {
             "train_loss": epoch_loss, 
-            **metrics(y, y_hat), 
+            **self.train_metrics(y, y_hat), 
             }
         self.log_dict(metrics_dict, **self.logging_params)
         
@@ -69,7 +76,7 @@ class LightningWrapper2dCnnClassification(L.LightningModule):
     def validation_step(self, batch):
         x, y = batch
         y_hat = self.model(x)
-        loss = nn.functional.binary_cross_entropy(y_hat, y)
+        loss = self.loss_func(y_hat, y)
 
         # Store predictions for later metric computation
         self.validation_step_outputs.append({
@@ -92,11 +99,9 @@ class LightningWrapper2dCnnClassification(L.LightningModule):
         y, y_hat = self._flatten_predictions(y, y_hat)
 
         # Compute metrics for whole epoch
-        # metrics = compute_classification_metrics(y, y_hat, phase="val")
-        metrics = ClassificationMetrics(phase="val")
         metrics_dict = {
-            "val_loss": nn.functional.binary_cross_entropy(y_hat, y),
-            **metrics(y, y_hat),
+            "val_loss": self.loss_func(y_hat, y),
+            **self.val_metrics(y, y_hat),
         }
         self.log_dict(metrics_dict, **self.logging_params)
                 
@@ -108,7 +113,7 @@ class LightningWrapper2dCnnClassification(L.LightningModule):
         # test_step defines the test loop.
         x, y = batch
         y_hat = self.model(x)
-        loss = nn.functional.binary_cross_entropy(y, y_hat)
+        loss = self.loss_func(y, y_hat)
         
         # self.log("test_loss", loss)
         return loss

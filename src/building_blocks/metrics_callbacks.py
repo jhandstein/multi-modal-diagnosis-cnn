@@ -1,15 +1,11 @@
-import torch
-from typing import Literal
 from lightning.pytorch.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_only
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import json
 
 from src.data_management.data_set import NakoSingleFeatureDataset
-from src.utils.cuda_utils import tensor_to_numpy
 
 class ValidationPrintCallback(Callback):
     def __init__(self, logger=None):
@@ -40,60 +36,7 @@ class ValidationPrintCallback(Callback):
     @rank_zero_only
     def on_fit_end(self, trainer, pl_module):
         print(f"Training finished. Validation losses: {self.validation_losses}, Best loss: {self.best_loss}")
-
-class ClassificationMetrics:
-    def __init__(self, phase: Literal["train", "val", "test"] = "train"):
-        self.phase = phase
-
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor) -> dict:
-        """Compute classification metrics for given predictions and labels."""
-        # Convert to numpy
-        y = tensor_to_numpy(y)
-        y_hat = tensor_to_numpy(y_hat)
-        
-        return self.compute_classification_metrics(y, y_hat)
-
-    def compute_classification_metrics(self, y: torch.tensor, y_hat: torch.tensor) -> dict:
-        """Compute classification metrics using stored predictions and labels."""
-        y_hat_thresh = (y_hat > 0.5).astype(int)  # threshold at 0.5
-
-        metrics = {
-            f"{self.phase}_accuracy": accuracy_score(y, y_hat_thresh),
-            f"{self.phase}_f1": f1_score(y, y_hat_thresh),
-            f"{self.phase}_precision": precision_score(y, y_hat_thresh, zero_division=0),
-            f"{self.phase}_recall": recall_score(y, y_hat_thresh),
-            f"{self.phase}_auc": roc_auc_score(y, y_hat)  # use raw probabilities for AUC
-        }
-
-        return {k: round(v, 4) for k, v in metrics.items()}
     
-
-def process_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFrame:
-    """Process metrics CSV file to combine matching epochs and round values.
-    
-    Args:
-        csv_path: Path to input CSV file
-        output_path: Optional path to save processed CSV
-    
-    Returns:
-        Processed DataFrame
-    """
-    # Read CSV
-    df = pd.read_csv(csv_path)
-    
-    # Group by epoch and step, combining all metrics
-    df = df.groupby(['epoch', 'step']).first().reset_index()
-    df = df.drop(columns=['step'])
-    
-    # Round all numeric columns to 4 decimals
-    numeric_cols = df.select_dtypes(include=['float64']).columns
-    df[numeric_cols] = df[numeric_cols].round(4)
-    
-    # Save if output path provided
-    if output_path:
-        df.to_csv(output_path, index=False)
-        
-    return df
 
 class ExperimentTrackingCallback(Callback):
     def __init__(self, logger=None, train_set: NakoSingleFeatureDataset=None, val_set:NakoSingleFeatureDataset=None, test_set:NakoSingleFeatureDataset=None):
@@ -108,12 +51,12 @@ class ExperimentTrackingCallback(Callback):
         self.dataset_info = {
             "modality": train_set.modalitiy.value if train_set else None,
             "feature_set": train_set.feature_set.value if train_set else None,
-            "train_indices": train_set.subject_ids if train_set else None,
-            "val_indices": val_set.subject_ids if val_set else None,
-            "test_indices": test_set.subject_ids if test_set else None,
             "len_train": len(train_set) if train_set else None,
             "len_val": len(val_set) if val_set else None,
             "len_test": len(test_set) if test_set else None,
+            "train_indices": train_set.subject_ids if train_set else None,
+            "val_indices": val_set.subject_ids if val_set else None,
+            "test_indices": test_set.subject_ids if test_set else None,
         }
 
     @rank_zero_only
