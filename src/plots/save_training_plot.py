@@ -26,7 +26,7 @@ def plot_training_metrics(file_path: Path):
     ax2.tick_params(axis='y', labelcolor='tab:blue')
 
     # Set y-axis limits for accuracies
-    ax2.set_ylim(0.5, 1)
+    ax2.set_ylim(0, 1)
 
     # Add title and legend
     plt.title('Training and Validation Metrics')

@@ -1,8 +1,11 @@
 import torch.nn as nn
 
+from src.utils.calc_size_after_conv import calculate_2d_conv_ouput_size
+
 class ConvBranch2d(nn.Module):
-    def __init__(self):
+    def __init__(self, input_shape: tuple):
         super().__init__()
+        self.input_shape = input_shape
         # convolutional layer
         self.conv1 = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=5, padding=1),
@@ -23,8 +26,9 @@ class ConvBranch2d(nn.Module):
             nn.ReLU(),
         )
 
+        # dimensions of the image after 4 conv layers
+        x, y = calculate_2d_conv_ouput_size(input_shape, kernel_size=5, stride=1, padding=1)
         # fully connected layers
-        x, y = 51, 42 # dimensions of the image after 4 conv layers
         self.fc1 = nn.Linear(64 * x * y, 512)
         self.fc2 = nn.Linear(512, 1)
         self.sigmoid = nn.Sigmoid()

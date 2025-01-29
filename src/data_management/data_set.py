@@ -1,33 +1,35 @@
 import torch
 from torch.utils.data import Dataset
 
-from data_management.mri_image_files import MriImageFile
+from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureType, ModalityType
 from src.utils.load_targets import extract_target
 from src.utils.subject_ids import sample_subject_ids
 
 class NakoSingleFeatureDataset(Dataset):
-    def __init__(self, subject_ids: int, modality: ModalityType, feature_set: FeatureType, target: str):
+    """PyTorch Dataset class for the NAKO dataset and its MRI feature maps"""
+    def __init__(self, subject_ids: int, modality: ModalityType, feature_set: FeatureType, target: str, middle_slice: bool = True):
         self.subject_ids = subject_ids
         self.labels = extract_target(target, subject_ids)
         self.modalitiy = modality
         self.feature_set = feature_set
-        
+        self.middle_slice = middle_slice
+
+        # Get shape of one sample (without channel dimension)
+        image_file = MriImageFile(self.subject_ids[0], self.modalitiy, self.feature_set)
+        sample_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
+        self.data_shape = tuple(sample_tensor.shape[1:])
 
     def __len__(self):
         return int(len(self.subject_ids))
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
+        # Load the feature map as a tensor
         image_file = MriImageFile(subject_id, self.modalitiy, self.feature_set)
-        feature_array = image_file.load_array()
-        feature_tensor = torch.from_numpy(feature_array).float()
-        # extract only the middle slice 
-        feature_tensor = feature_tensor[feature_tensor.shape[0]//2]
-        feature_tensor = feature_tensor.unsqueeze(0)#.unsqueeze(0)
-
+        feature_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
+        # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
-        
         return feature_tensor, label
     
 
@@ -49,6 +51,7 @@ def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8)
         "modality": ModalityType.ANAT,
         "feature_set": FeatureType.GM,
         "target": "sex",
+        "middle_slice": True
     }
     
     train_set = NakoSingleFeatureDataset(

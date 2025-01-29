@@ -1,16 +1,17 @@
 from pathlib import Path
+import time
 import torch
 import lightning as L
 from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
+
 from src.plots.save_training_plot import plot_training_metrics
 from src.data_management.data_set import prepare_standard_data_sets
 from src.building_blocks.metrics_logging import ExperimentTrackingCallback, ValidationPrintCallback, process_metrics_file
 from src.data_management.data_loader import prepare_standard_data_loaders
-from src.building_blocks.lightning_wrapper import BinaryClassificationCnn2d
+from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
 from src.utils.cuda_utils import check_cuda
-from src.utils.calc_size_after_conv import calc_convolved_size
 
 
 
@@ -20,21 +21,21 @@ def train_model():
     # Set seed for reproducibility
     seed_everything(42, workers=True)
 
-    # Declare lightning wrapper model
-    lightning_model = BinaryClassificationCnn2d()
-
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 8 # should be maximum val_set size / num_gpus
-    epochs = 100
-    sample_size = 16384
-    # sample_size = 256
+    epochs = 3
+    # sample_size = 16384
+    sample_size = 256
 
     # Prepare data sets and loaders
     # TODO: replace with k-fold cross-validation? 4 folds in publication
     train_set, val_set, test_set = prepare_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
+
+    # Declare lightning wrapper model
+    lightning_model = LightningWrapper2dCnnClassification(train_set.data_shape)
     
     # Experiment setup
     if epochs > 10:
@@ -79,7 +80,7 @@ def train_model():
         **training_params,
         **logging_params
     )
-
+    
     trainer.fit(
         model=lightning_model, 
         train_dataloaders=train_loader,
@@ -91,6 +92,8 @@ def train_model():
     processed_file = Path(logger.log_dir, "metrics_processed.csv")
     process_metrics_file(metrics_file, processed_file)
 
+    # Plot training metrics (after some time to allow for file writing)
+    time.sleep(2)
     plot_training_metrics(processed_file)
 
     # TODO: Test model
@@ -107,6 +110,4 @@ if __name__ == "__main__":
     # check_cuda()
 
     # compare data dimensions for raw and feature maps
-    # train_model()
-    calc_convolved_size(130626)
-
+    train_model()

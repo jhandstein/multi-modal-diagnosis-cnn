@@ -1,8 +1,9 @@
-from data_management.mri_image_files import MriImageFile
+from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureType, ModalityType
 
 
 def calc_convolved_size(subject_id: int):
+    """Print the sizes of the feature maps after 4 convolutions and two maxpools."""
     # Set parameters for the convolutional layers
     kernel_size = 5
     stride = 1
@@ -11,19 +12,19 @@ def calc_convolved_size(subject_id: int):
     # Print the sizes of the feature maps
     fm_map = MriImageFile(subject_id, ModalityType.ANAT, FeatureType.GM)
     input_size = fm_map.get_size()[1:]
-    output_size = initial_2d_size(input_size, kernel_size, stride, padding)
+    output_size = calculate_2d_conv_ouput_size(input_size, kernel_size, stride, padding)
     print(f"Input size feature map: {input_size}")
     print(f"Output size feature map (for FC layer): {output_size}")
     
     # Print the sizes of the raw images
     fm_raw = MriImageFile(subject_id, ModalityType.RAW, FeatureType.SMRI)
     input_size = fm_raw.get_size()[1:]
-    output_size = initial_2d_size(input_size, kernel_size, stride, padding)
+    output_size = calculate_2d_conv_ouput_size(input_size, kernel_size, stride, padding)
     print(f"Input size raw feature map: {input_size}")
     print(f"Output size raw feature map (for FC layer): {output_size}")
 
-def initial_2d_size(input_size, kernel_size, stride, padding):
-    """Calculate the size of the output tensor after 4 convolutions and two maxpools. This function therefore mirrors the forward pass of the ConvBranch2d model."""
+def calculate_2d_conv_ouput_size(input_size, kernel_size, stride, padding):
+    """Calculate the size of the output tensor after 4 convolutions and two maxpools. This function mirrors the forward pass of the ConvBranch2d model."""
     height, width = input_size
     # Convolutional layer 1
     height_1, width_1 = compute_size_after_2d_conv(height, width, kernel_size, stride, padding)

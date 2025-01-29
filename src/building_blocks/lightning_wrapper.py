@@ -6,10 +6,10 @@ import torch
 from src.building_blocks.metrics_logging import ClassificationMetrics
 from src.building_blocks.layers import ConvBranch2d
  
-class BinaryClassificationCnn2d(L.LightningModule):
-    def __init__(self):
+class LightningWrapper2dCnnClassification(L.LightningModule):
+    def __init__(self, input_shape: tuple):
         super().__init__()
-        self.model = ConvBranch2d()
+        self.model = ConvBranch2d(input_shape)
         self.train_step_outputs = []
         self.validation_step_outputs = []
         self.logging_params = {
@@ -88,10 +88,10 @@ class BinaryClassificationCnn2d(L.LightningModule):
         y = self.all_gather(y)
         y_hat = self.all_gather(y_hat)
         
-        # # Reshape if needed (all_gather adds new dimension)
+        # Reshape if needed (all_gather adds new dimension)
         y, y_hat = self._flatten_predictions(y, y_hat)
 
-        # # Compute metrics for whole epoch
+        # Compute metrics for whole epoch
         # metrics = compute_classification_metrics(y, y_hat, phase="val")
         metrics = ClassificationMetrics(phase="val")
         metrics_dict = {
@@ -100,7 +100,7 @@ class BinaryClassificationCnn2d(L.LightningModule):
         }
         self.log_dict(metrics_dict, **self.logging_params)
                 
-        # # Clear saved outputs
+        # Clear saved outputs
         self.validation_step_outputs.clear()
         pass
 

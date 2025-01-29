@@ -1,5 +1,6 @@
 # https://lukas-snoek.com/NI-edu/fMRI-introduction/week_1/python_for_mri.html
 
+import torch
 import numpy as np
 import nibabel as nib 
 from pathlib import Path
@@ -28,22 +29,28 @@ class MriImageFile:
             return self._get_smri_path()
         else:
             raise ValueError("Invalid scan type")
+        
+    def load_as_tensor(self, middle_slice: bool = True) -> torch.tensor:
+        """Loads the feature map file as a torch tensor"""
+        # Load the feature map as a float tensor
+        t = torch.from_numpy(self.load_array()).float()
+        if middle_slice:
+            # extract only the middle slice
+            t = t[t.shape[0]//2]
+            # add a channel dimension
+            t = t.unsqueeze(0)
+        return t
     
     def load_array(self) -> np.ndarray:
         """Loads the feature map file as a numpy array"""
         img = nib.load(self.get_path())
         return img.get_fdata()
     
-    def load_middle_slice(self) -> np.ndarray:
-        """Loads the middle slice of the feature map file as a numpy array"""
-        img = nib.load(self.get_path())
-        return img.get_fdata()[img.shape[0]//2]
-    
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""
         img = nib.load(self.get_path())
         return img.shape
-    
+ 
     def print_stats(self):
         """Function to show some basic statistics about the image without loading the whole array"""
         img = nib.load(self.get_path())
