@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from typing import Literal
-from sklearn.metrics import (accuracy_score, f1_score, precision_score, 
-                           recall_score, roc_auc_score, mean_squared_error, r2_score)
+from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error, precision_score, 
+                           recall_score, roc_auc_score, mean_squared_error, r2_score, root_mean_squared_error)
 
 class BaseMetrics:
     def __init__(self, phase: Literal["train", "val", "test"]):
@@ -35,8 +35,10 @@ class ClassificationMetrics(BaseMetrics):
 class RegressionMetrics(BaseMetrics):
     def compute_metrics(self, y: np.ndarray, y_hat: np.ndarray) -> dict:
         metrics = {
+            f"{self.phase}_r2": r2_score(y, y_hat),
+            f"{self.phase}_msa": mean_absolute_error(y, y_hat),
             f"{self.phase}_mse": mean_squared_error(y, y_hat),
-            f"{self.phase}_r2": r2_score(y, y_hat)
+            f"{self.phase}_rmse": root_mean_squared_error(y, y_hat),
         }
         return {k: round(v, 4) for k, v in metrics.items()}
 

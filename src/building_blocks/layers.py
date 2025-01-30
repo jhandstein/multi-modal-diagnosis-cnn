@@ -54,3 +54,8 @@ class ConvBranch2d(nn.Module):
         return x.squeeze()
     
 
+class ConvBranch3d(nn.Module):
+    
+    def __init__(self):
+        super().__init__()
+        

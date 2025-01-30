@@ -95,7 +95,7 @@ def prepare_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8)
     params = {
         "modality": ModalityType.ANAT,
         "feature_set": FeatureType.GM,
-        "target": "sex",
+        "target": "age",
         "middle_slice": True
     }
     

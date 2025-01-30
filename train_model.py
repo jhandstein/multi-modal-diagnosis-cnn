@@ -25,10 +25,10 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 8 # should be maximum val_set size / num_gpus
-    epochs = 3
-    # sample_size = 16384
-    sample_size = 1024
-    task = "classification"
+    epochs = 100
+    sample_size = 16384
+    # sample_size = 1024
+    task = "regression"
 
     # Prepare data sets and loaders
     # TODO: replace with k-fold cross-validation? 4 folds in publication
@@ -97,9 +97,17 @@ def train_model():
 
     # Plot training metrics (after some time to allow for file writing)
     time.sleep(2)
-    plot_training_metrics(processed_file)
+    plot_training_metrics(processed_file, task=task)
 
     # TODO: Test model
+    def test_model():
+        checkpoint_path = Path("models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt")
+        lightning_model = LightningWrapper2dCnnClassification.load_from_checkpoint(checkpoint_path)
+
+        # Set model into evaluation mode
+        lightning_model.eval()
+
+
     
 def print_ds_indices():
     train_set, val_set, test_set = prepare_standard_data_sets(n_samples=1024)
