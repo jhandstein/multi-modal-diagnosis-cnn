@@ -14,4 +14,5 @@ def test_data_set_factory():
     train_set, val_set, test_set = ds_factory.create_data_sets()
 
 if __name__ == "__main__":
+    print("Hello from test.py")
     pass

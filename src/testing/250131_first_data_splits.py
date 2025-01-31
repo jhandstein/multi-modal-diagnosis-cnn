@@ -1,7 +1,7 @@
 import pandas as pd
 
-from src.data_management.create_data_split import DataSplit, create_balanced_sample, sub_sample_data_split
-from src.utils.config import AGE_SEX_10K_PATH, AGE_SEX_1K_PATH, HIGH_QUALITY_FMRI_IDS, HIGH_QUALITY_SMRI_IDS, NUM_SAMPLES_10K, NUM_SAMPLES_1K
+from src.data_management.create_data_split import DataSplitFile, create_balanced_sample, sub_sample_data_split
+from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, HIGH_QUALITY_FMRI_IDS, HIGH_QUALITY_SMRI_IDS, NUM_SAMPLES_10K, NUM_SAMPLES_1K
 from src.utils.load_targets import extract_target
 from src.utils.subject_selection import load_subject_ids_from_file
 
@@ -18,7 +18,7 @@ def create_balanced_samples():
     # print_split_results(train, val, test)
 
     # Save to file
-    split_1k = DataSplit(AGE_SEX_1K_PATH)
+    split_1k = DataSplitFile(AGE_SEX_BALANCED_1K_PATH)
     split_1k.save_data_splits_to_file({
         "train": train.index.tolist(),
         "val": val.index.tolist(),
@@ -42,7 +42,7 @@ def create_balanced_samples():
     # print_split_results(train, val, test)
 
     # Save to file
-    split_10k = DataSplit(AGE_SEX_10K_PATH)
+    split_10k = DataSplitFile(AGE_SEX_BALANCED_10K_PATH)
     split_10k.save_data_splits_to_file({
         "train": train.index.tolist(),
         "val": val.index.tolist(),

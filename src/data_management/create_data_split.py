@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 @dataclass
-class DataSplit:
+class DataSplitFile:
     """Data class for storing data split information"""
     file_path: Path
 

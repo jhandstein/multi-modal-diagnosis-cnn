@@ -4,8 +4,8 @@ from pathlib import Path
 # Sample numbers that are divisible by 128 and therefore suitable for batch processing
 NUM_SAMPLES_1K = 1024 
 NUM_SAMPLES_10K = 10240
-AGE_SEX_1K_PATH = Path("src/data_management/age_sex_split_1k.json")
-AGE_SEX_10K_PATH = Path("src/data_management/age_sex_split_10k.json") 
+AGE_SEX_BALANCED_1K_PATH = Path("src/data_management/age_sex_split_1k.json")
+AGE_SEX_BALANCED_10K_PATH = Path("src/data_management/age_sex_split_10k.json") 
 
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")

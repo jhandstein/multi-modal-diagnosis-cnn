@@ -6,6 +6,8 @@ from lightning.pytorch import seed_everything
 from lightning.pytorch import loggers as pl_loggers
 
 
+from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
+from src.data_management.create_data_split import DataSplitFile
 from src.plots.save_training_plot import plot_training_metrics
 from src.data_management.data_set import sample_standard_data_sets
 from src.building_blocks.metrics_callbacks import ExperimentTrackingCallback, ValidationPrintCallback
@@ -13,7 +15,7 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
 from src.utils.cuda_utils import check_cuda
 from src.utils.process_metrics import process_metrics_file
-from src.utils.config import FeatureType, ModalityType
+from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureType, ModalityType
 
 
 def train_model():
@@ -25,21 +27,24 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 8 # should be maximum val_set size / num_gpus
-    epochs = 3
-    # sample_size = 16384
-    sample_size = 1024
+    epochs = 100
     task = "classification"
 
     # Prepare data sets and loaders
-    # TODO: Implement DataSetConfig and DataSetFactory
     ds_details = {
         "modality": ModalityType.ANAT,
         "feature_set": FeatureType.GM,
-        "target":   "sex",
+        "target": "sex",
         "middle_slice": True
     }
 
-    train_set, val_set, test_set = sample_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
+    split_path = AGE_SEX_BALANCED_1K_PATH
+    # split_path = AGE_SEX_BALANCED_10K_PATH
+    data_split = DataSplitFile(split_path).load_data_splits_from_file()
+    ds_config = DataSetConfig(**ds_details)
+    train_set, val_set, test_set = DataSetFactory(data_split["train"], data_split["val"], data_split["test"], ds_config).create_data_sets()
+
+    # train_set, val_set, test_set = sample_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
