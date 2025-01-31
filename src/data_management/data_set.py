@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureType, ModalityType
 from src.utils.load_targets import extract_target
-from src.utils.subject_ids import sample_subject_ids
+from src.utils.subject_selection import sample_subject_ids
 
 class NakoSingleFeatureDataset(Dataset):
     """PyTorch Dataset class for the NAKO dataset and its MRI feature maps"""
@@ -39,7 +39,6 @@ def sample_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8) 
     train_size = int(n_samples * (1 - (2* val_test_frac)))
     val_size = int(n_samples * val_test_frac)
 
-    # TODO: Device a better way to split the data (eg., k-fold cross-validation and stratified sampling)
     train_idxs = current_sample[:train_size]
     val_idxs = current_sample[train_size:train_size + val_size]
     test_idxs = current_sample[train_size + val_size:]

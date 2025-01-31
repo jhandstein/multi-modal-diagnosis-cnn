@@ -1,5 +1,4 @@
 # https://lukas-snoek.com/NI-edu/fMRI-introduction/week_1/python_for_mri.html
-
 import torch
 import numpy as np
 import nibabel as nib 
@@ -35,11 +34,11 @@ class MriImageFile:
         """Loads the feature map file as a torch tensor"""
         # Load the feature map as a float tensor
         t = torch.from_numpy(self.load_array()).float()
+        # Extract only the middle slice
         if middle_slice:
-            # extract only the middle slice
             t = t[t.shape[0]//2]
-            # add a channel dimension
-            t = t.unsqueeze(0)
+        # Add a channel dimension
+        t = t.unsqueeze(0)
         return t
     
     def load_array(self) -> np.ndarray:

@@ -13,6 +13,7 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
 from src.utils.cuda_utils import check_cuda
 from src.utils.process_metrics import process_metrics_file
+from src.utils.config import FeatureType, ModalityType
 
 
 def train_model():
@@ -30,7 +31,14 @@ def train_model():
     task = "classification"
 
     # Prepare data sets and loaders
-    # TODO: replace with k-fold cross-validation? 4 folds in publication
+    # TODO: Implement DataSetConfig and DataSetFactory
+    ds_details = {
+        "modality": ModalityType.ANAT,
+        "feature_set": FeatureType.GM,
+        "target":   "sex",
+        "middle_slice": True
+    }
+
     train_set, val_set, test_set = sample_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
@@ -99,7 +107,6 @@ def train_model():
     plot_training_metrics(processed_file, task=task)
 
     # TODO: Test model
-
     def test_model():
         checkpoint_path = Path("models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt")
         lightning_model = LightningWrapper2dCnnClassification.load_from_checkpoint(checkpoint_path)
@@ -121,4 +128,4 @@ if __name__ == "__main__":
     # check_cuda()
 
     train_model()
-
+    
