@@ -1,7 +1,7 @@
 from typing import Literal
 import torch.nn as nn
 
-from src.utils.calc_size_after_conv import calculate_2d_conv_ouput_size
+from src.utils.calc_size_after_conv import ConvCalculator
 
 class ConvBranch2d(nn.Module):
     def __init__(self, input_shape: tuple, task: Literal["classification", "regression"]):
@@ -30,12 +30,16 @@ class ConvBranch2d(nn.Module):
         )
 
         # dimensions of the image after 4 conv layers
-        x, y = calculate_2d_conv_ouput_size(input_shape, kernel_size=5, stride=1, padding=1)
-        
+        conv_calc = ConvCalculator(kernel_size=5, stride=1, padding=1)
+        x, y = conv_calc.calculate_network_output_size(input_shape)
+
         # fully connected layers
         self.fc1 = nn.Linear(64 * x * y, 512)
         self.fc2 = nn.Linear(512, 1)
-        
+
+        # dropout layer for the input of the fully connected layers
+        self.dropout = nn.Dropout(p=0.5)
+
         # sigmoid activation function to convert to class probabilities
         self.sigmoid = nn.Sigmoid()
 
@@ -46,7 +50,9 @@ class ConvBranch2d(nn.Module):
         x = self.conv4(x)
         # Flatten tensor for fully connected layers (while keeping batch dimension)
         x = x.view(x.size(0), -1)
+        x = self.dropout(x)
         x = self.fc1(x)
+        x = self.dropout(x)
         x = self.fc2(x)
         if self.task == "classification":
             x = self.sigmoid(x)
@@ -56,6 +62,7 @@ class ConvBranch2d(nn.Module):
 
 class ConvBranch3d(nn.Module):
     
-    def __init__(self):
+    def __init__(self, input_shape: tuple, task: Literal["classification", "regression"]):
         super().__init__()
-        
+                
+       

@@ -17,8 +17,9 @@ class MriImageFile:
         self.token = f"sub-{subject_id}"
         self.scan_type = scan_type
         self.map_type = map_type
-
-    def get_path(self) -> Path:
+    
+    @property
+    def file_path(self) -> Path:
         """Returns the path to the feature map file"""
         # TODO: refine selection of paths (implement switch case)
         if self.scan_type == ModalityType.ANAT:
@@ -43,17 +44,17 @@ class MriImageFile:
     
     def load_array(self) -> np.ndarray:
         """Loads the feature map file as a numpy array"""
-        img = nib.load(self.get_path())
+        img = nib.load(self.file_path)
         return img.get_fdata()
     
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""
-        img = nib.load(self.get_path())
+        img = nib.load(self.file_path)
         return img.shape
  
     def print_stats(self):
         """Function to show some basic statistics about the image without loading the whole array"""
-        img = nib.load(self.get_path())
+        img = nib.load(self.file_path)
         print(img.shape)
         print(img.header.get_zooms())
         print(img.header.get_xyzt_units())
