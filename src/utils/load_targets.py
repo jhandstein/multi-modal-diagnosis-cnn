@@ -15,5 +15,6 @@ def extract_target(target: str, subject_ids: list[int]) -> pd.Series:
     nako_table.set_index("ID", inplace=True)
     series = nako_table.loc[subject_ids, NAKO_TARGETS[target]]
     if target == "sex":
+        # 0 means male, 1 means female
         series = series.map({1: 0, 2: 1})
     return series.sort_index()
