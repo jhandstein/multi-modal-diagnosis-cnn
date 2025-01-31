@@ -15,7 +15,7 @@ def create_balanced_samples():
 
     # Split into training, validation and test set
     train, val, test = sub_sample_data_split(balanced_ids_1k)
-    # print_split_results(train, val, test)
+    print_split_results(train, val, test)
 
     # Save to file
     split_1k = DataSplitFile(AGE_SEX_BALANCED_1K_PATH)
@@ -39,7 +39,7 @@ def create_balanced_samples():
 
     # Split into training, validation and test set
     train, val, test = sub_sample_data_split(balanced_ids_10k)
-    # print_split_results(train, val, test)
+    print_split_results(train, val, test)
 
     # Save to file
     split_10k = DataSplitFile(AGE_SEX_BALANCED_10K_PATH)
@@ -55,3 +55,6 @@ def print_split_results(train: pd.Series, val: pd.Series, test: pd.Series) -> No
     print(f"Label distribution (training): \n{train.value_counts()}")
     print(f"Label distribution (validation): \n{val.value_counts()}")
     print(f"Label distribution (test): \n{test.value_counts()}")
+
+if __name__ == "__main__":
+    create_balanced_samples()
