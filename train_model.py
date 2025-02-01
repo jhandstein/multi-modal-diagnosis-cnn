@@ -30,10 +30,13 @@ def train_model():
     epochs = 3
     task = "classification"
     target = "sex" if task == "classification" else "age"
+    experiment_notes = {
+        "notes": "First run with fMRI map"
+    }
 
     # Prepare data sets and loaders
     ds_details = {
-        "feature_map": FeatureMapType.GM,
+        "feature_map": FeatureMapType.REHO,
         "target": target,
         "middle_slice": True
     }
@@ -68,7 +71,7 @@ def train_model():
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
     print_callback = ValidationPrintCallback(logger=logger)
-    json_callback = ExperimentTrackingCallback(logger=logger, train_set=train_set, val_set=val_set, test_set=test_set, batch_size=batch_size)
+    json_callback = ExperimentTrackingCallback(logger=logger, train_set=train_set, val_set=val_set, test_set=test_set, batch_size=batch_size, notes=experiment_notes)
 
     gpu_params = {
         "accelerator": "gpu" if torch.cuda.is_available() else None,
