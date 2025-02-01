@@ -6,7 +6,7 @@ import torch
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
 
-from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
+from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
     ExperimentTrackingCallback,
     ValidationPrintCallback,
@@ -67,7 +67,7 @@ def train_model():
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Declare lightning wrapper model
-    lightning_model = LightningWrapper2dCnnClassification(
+    lightning_model = LightningWrapper2dCnn(
         train_set.data_shape, task=task
     )
 
@@ -132,7 +132,7 @@ def train_model():
         checkpoint_path = Path(
             "models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt"
         )
-        lightning_model = LightningWrapper2dCnnClassification.load_from_checkpoint(
+        lightning_model = LightningWrapper2dCnn.load_from_checkpoint(
             checkpoint_path
         )
 

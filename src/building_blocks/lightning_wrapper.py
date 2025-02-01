@@ -8,7 +8,7 @@ from src.building_blocks.compute_metrics import MetricsFactory
 from src.building_blocks.layers import ConvBranch2d
 
 
-class LightningWrapper2dCnnClassification(L.LightningModule):
+class LightningWrapper2dCnn(L.LightningModule):
     def __init__(
         self, input_shape: tuple, task: Literal["classification", "regression"]
     ):
