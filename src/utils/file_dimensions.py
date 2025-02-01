@@ -7,6 +7,6 @@ def raw_and_map_sizes(subject_id: int):
     fm = MriImageFile(subject_id, FeatureMapType.SMRI)
     print(fm.file_path)
     print(fm.print_stats())
-    fm2 = MriImageFile(subject_id,FeatureMapType.GM)
+    fm2 = MriImageFile(subject_id, FeatureMapType.GM)
     print(fm2.file_path)
     print(fm2.print_stats())

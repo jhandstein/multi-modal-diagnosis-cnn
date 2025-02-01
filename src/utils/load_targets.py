@@ -7,8 +7,9 @@ NAKO_TARGETS = {
     "subject_id": "ID",
     "center": "StudZ",
     "age": "basis_age",
-    "sex": "basis_sex"
+    "sex": "basis_sex",
 }
+
 
 def extract_target(target: str, subject_ids: list[int]) -> pd.Series:
     nako_table = pd.read_csv(NAKO_TABLE_PATH)

@@ -5,3 +5,4 @@ models_test/**
 nohup.out
 **/age_sex_split*
 plots/**
+.venv/**

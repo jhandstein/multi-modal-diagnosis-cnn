@@ -7,20 +7,23 @@ import json
 
 from src.data_management.data_set import NakoSingleFeatureDataset
 
+
 class ValidationPrintCallback(Callback):
     def __init__(self, logger=None):
         self.validation_losses = []
-        self.best_loss = float('inf')
+        self.best_loss = float("inf")
         self.logger = logger
 
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
-        print(f"Training started. Logs will be saved to {self.logger.log_dir if self.logger else 'nowhere'}")
+        print(
+            f"Training started. Logs will be saved to {self.logger.log_dir if self.logger else 'nowhere'}"
+        )
 
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
-        metrics = trainer.callback_metrics        
-        val_loss = metrics.get('val_loss')
+        metrics = trainer.callback_metrics
+        val_loss = metrics.get("val_loss")
 
         if val_loss is not None:
             print(f"Epoch {trainer.current_epoch}: Validation Loss = {val_loss:.4f}")
@@ -35,20 +38,30 @@ class ValidationPrintCallback(Callback):
 
     @rank_zero_only
     def on_fit_end(self, trainer, pl_module):
-        print(f"Training finished. Validation losses: {self.validation_losses}, Best loss: {self.best_loss}")
-    
+        print(
+            f"Training finished. Validation losses: {self.validation_losses}, Best loss: {self.best_loss}"
+        )
+
 
 class ExperimentTrackingCallback(Callback):
-    def __init__(self, logger=None, train_set: NakoSingleFeatureDataset=None, val_set: NakoSingleFeatureDataset=None, test_set: NakoSingleFeatureDataset=None, batch_size: int=None, notes: dict={}):
+    def __init__(
+        self,
+        logger=None,
+        train_set: NakoSingleFeatureDataset = None,
+        val_set: NakoSingleFeatureDataset = None,
+        test_set: NakoSingleFeatureDataset = None,
+        batch_size: int = None,
+        notes: dict = {},
+    ):
         self.logger = logger
         self.start_time = None
         self.epoch_times = []
         self.last_epoch_time = None
         self.validation_losses = []
-        self.best_loss = float('inf')
+        self.best_loss = float("inf")
         self.batch_size = batch_size
         self.notes = notes
-        
+
         # Store dataset indices
         self.dataset_info = {
             "modality": train_set.feature_map.modality_label if train_set else None,
@@ -78,7 +91,7 @@ class ExperimentTrackingCallback(Callback):
 
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
-        val_loss = trainer.callback_metrics.get('val_loss')       
+        val_loss = trainer.callback_metrics.get("val_loss")
 
         if val_loss is not None:
             self.validation_losses.append(val_loss)
@@ -93,27 +106,34 @@ class ExperimentTrackingCallback(Callback):
     def on_fit_end(self, trainer, pl_module):
         end_time = datetime.now()
         duration = end_time - self.start_time
-        
+
         experiment_info = {
             "timing": {
-                "start_time": self.start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                "end_time": end_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "start_time": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "total_duration_seconds": round(duration.total_seconds(), 2),
                 "total_duration_minutes": round(duration.total_seconds() / 60, 2),
-                "average_epoch_time_seconds": round(sum(self.epoch_times) / len(self.epoch_times), 2) if self.epoch_times else 0,
+                "average_epoch_time_seconds": (
+                    round(sum(self.epoch_times) / len(self.epoch_times), 2)
+                    if self.epoch_times
+                    else 0
+                ),
                 "epochs_completed": len(self.epoch_times),
                 "batch_size": self.batch_size,
-                **self.notes
+                **self.notes,
             },
             "metrics": {
-                "validation_losses": [tensor.item() for tensor in self.validation_losses],
-                "best_loss": self.best_loss.item() if self.best_loss != float('inf') else None
+                "validation_losses": [
+                    tensor.item() for tensor in self.validation_losses
+                ],
+                "best_loss": (
+                    self.best_loss.item() if self.best_loss != float("inf") else None
+                ),
             },
             "dataset_info": self.dataset_info,
         }
 
         if self.logger and self.logger.log_dir:
             log_file = Path(self.logger.log_dir) / "experiment_info.json"
-            with open(log_file, 'w') as f:
+            with open(log_file, "w") as f:
                 json.dump(experiment_info, f, indent=4)
-                

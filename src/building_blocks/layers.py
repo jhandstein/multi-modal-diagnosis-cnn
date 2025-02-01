@@ -3,8 +3,11 @@ import torch.nn as nn
 
 from src.utils.calc_size_after_conv import ConvCalculator
 
+
 class ConvBranch2d(nn.Module):
-    def __init__(self, input_shape: tuple, task: Literal["classification", "regression"]):
+    def __init__(
+        self, input_shape: tuple, task: Literal["classification", "regression"]
+    ):
         super().__init__()
         self.input_shape = input_shape
         self.task = task
@@ -13,12 +16,12 @@ class ConvBranch2d(nn.Module):
         self.conv1 = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=5, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2),
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size=5, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2),
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=5, padding=1),
@@ -58,11 +61,11 @@ class ConvBranch2d(nn.Module):
             x = self.sigmoid(x)
         # Squeeze the output to match the shape of the labels
         return x.squeeze()
-    
+
 
 class ConvBranch3d(nn.Module):
-    
-    def __init__(self, input_shape: tuple, task: Literal["classification", "regression"]):
+
+    def __init__(
+        self, input_shape: tuple, task: Literal["classification", "regression"]
+    ):
         super().__init__()
-                
-       

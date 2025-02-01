@@ -7,8 +7,14 @@ from src.utils.config import AVAILABLE_SUBJECT_IDS
 
 def get_subject_ids(directory: str) -> list:
     """Extracts all available subject IDs from the given directory of fMRIprep outputs"""
-    folder_names = [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
-    return sorted([int(name.split("-")[1]) for name in folder_names if name.startswith("sub-")])
+    folder_names = [
+        name
+        for name in os.listdir(directory)
+        if os.path.isdir(os.path.join(directory, name))
+    ]
+    return sorted(
+        [int(name.split("-")[1]) for name in folder_names if name.startswith("sub-")]
+    )
 
 
 def save_subject_ids(data_directory: Path):
@@ -23,7 +29,7 @@ def load_subject_ids_from_file(file_path=AVAILABLE_SUBJECT_IDS) -> list:
     """Loads all available subject IDs from a file"""
     with open(Path(file_path), "r") as file:
         return [int(line.strip()) for line in file.readlines()]
-    
+
 
 def sample_subject_ids(n: int) -> list:
     """Samples n subject IDs from the list of available subject IDs"""
