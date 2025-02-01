@@ -26,15 +26,15 @@ def train_model():
 
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
-    batch_size = 8 # should be maximum val_set size / num_gpus
-    epochs = 100
+    batch_size = 32 # should be maximum val_set size / num_gpus?
+    epochs = 3
     task = "classification"
 
     # Prepare data sets and loaders
     ds_details = {
-        "modality": ModalityType.ANAT,
-        "feature_set": FeatureType.GM,
-        "target": "sex",
+        "modality": ModalityType.FUNC,
+        "feature_set": FeatureType.REHO,
+        "target": "sex" if task == "classification" else "age",
         "middle_slice": True
     }
 
@@ -68,7 +68,7 @@ def train_model():
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
     print_callback = ValidationPrintCallback(logger=logger)
-    json_callback = ExperimentTrackingCallback(logger=logger, train_set=train_set, val_set=val_set, test_set=test_set)
+    json_callback = ExperimentTrackingCallback(logger=logger, train_set=train_set, val_set=val_set, test_set=test_set, batch_size=batch_size)
 
     gpu_params = {
         "accelerator": "gpu" if torch.cuda.is_available() else None,

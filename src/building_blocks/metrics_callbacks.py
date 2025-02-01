@@ -39,13 +39,14 @@ class ValidationPrintCallback(Callback):
     
 
 class ExperimentTrackingCallback(Callback):
-    def __init__(self, logger=None, train_set: NakoSingleFeatureDataset=None, val_set:NakoSingleFeatureDataset=None, test_set:NakoSingleFeatureDataset=None):
+    def __init__(self, logger=None, train_set: NakoSingleFeatureDataset=None, val_set:NakoSingleFeatureDataset=None, test_set:NakoSingleFeatureDataset=None, batch_size:int=None):
         self.logger = logger
         self.start_time = None
         self.epoch_times = []
         self.last_epoch_time = None
         self.validation_losses = []
         self.best_loss = float('inf')
+        self.batch_size = batch_size
         
         # Store dataset indices
         self.dataset_info = {
@@ -99,7 +100,8 @@ class ExperimentTrackingCallback(Callback):
                 "total_duration_seconds": round(duration.total_seconds(), 2),
                 "total_duration_minutes": round(duration.total_seconds() / 60, 2),
                 "average_epoch_time_seconds": round(sum(self.epoch_times) / len(self.epoch_times), 2) if self.epoch_times else 0,
-                "epochs_completed": len(self.epoch_times)
+                "epochs_completed": len(self.epoch_times),
+                "batch_size": self.batch_size,
             },
             "metrics": {
                 "validation_losses": [tensor.item() for tensor in self.validation_losses],

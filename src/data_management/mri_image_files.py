@@ -4,7 +4,7 @@ import numpy as np
 import nibabel as nib 
 from pathlib import Path
 
-from src.utils.config import FMRI_PREP_FULL_SAMPLE, FeatureType, ModalityType
+from src.utils.config import FMRI_PREP_FULL_SAMPLE, XCP_D_FULL_SAMPLE, FeatureType, ModalityType
 
 class MriImageFile:
     """
@@ -62,7 +62,7 @@ class MriImageFile:
         return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_label-{self.map_type.value}_probseg.nii.gz")
 
     def _get_func_path(self) -> Path:
-        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type.value}.nii.gz")
+        return Path(XCP_D_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type.value}.nii.gz")
     
     def _get_smri_path(self) -> Path:
         return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_desc-preproc_T1w.nii.gz")

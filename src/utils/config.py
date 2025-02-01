@@ -11,6 +11,7 @@ AGE_SEX_BALANCED_10K_PATH = Path("src/data_management/age_sex_split_10k.json")
 NAKO_PATH = Path("/ritter/share/data/NAKO")
 NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_new.csv")
 FMRI_PREP_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/fmriprep")
+XCP_D_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/xcp_d")
 
 LOGS_PATH = Path("logs")
 
@@ -24,11 +25,13 @@ HIGH_QUALITY_SMRI_IDS = Path(NAKO_PATH, "derivatives_ses0/info_MRI_availability/
 HIGH_QUALITY_FMRI_IDS = Path(NAKO_PATH, "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_rsfMRI_high_quality.tsv")
 
 class ModalityType(Enum):
+    """Enum for the different MRI data types that can be processed"""
     RAW = "raw"
     ANAT = "anat"
     FUNC = "func"
 
 class FeatureType(Enum):
+    """Enum for the different feature map types that can be extracted from the MRI data"""
     # raw data
     SMRI = "smri"
     FMRI = "fmri"
