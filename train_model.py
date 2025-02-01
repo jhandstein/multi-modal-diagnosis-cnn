@@ -36,6 +36,7 @@ def train_model():
     batch_size = 32  # should be maximum val_set size / num_gpus?
     epochs = 100
     task = "classification"
+    feature_map = FeatureMapType.REHO
     target = "sex" if task == "classification" else "age"
     experiment_notes = {"notes": "First run with fMRI map"}
 
@@ -49,7 +50,7 @@ def train_model():
 
     # Prepare data sets and loaders
     ds_details = {
-        "feature_map": FeatureMapType.REHO,
+        "feature_map": feature_map,
         "target": target,
         "middle_slice": True,
     }

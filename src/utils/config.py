@@ -34,6 +34,10 @@ HIGH_QUALITY_FMRI_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_rsfMRI_high_quality.tsv",
 )
+LOW_QUALITY_FMRI_IDS = Path(
+    NAKO_PATH,
+    "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_rsfMRI_low_quality.tsv",
+)
 
 
 class ModalityType(Enum):

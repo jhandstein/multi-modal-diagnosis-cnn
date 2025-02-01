@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_set import NakoSingleFeatureDataset
 from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
@@ -7,6 +8,7 @@ from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
     FeatureMapType,
 )
+from src.testing._250131_first_data_splits import create_balanced_samples
 
 
 def test_data_set_factory():
@@ -25,3 +27,5 @@ def test_data_set_factory():
 
 if __name__ == "__main__":
     print("Hello from test.py")
+    create_balanced_samples()
+    plot_age_range()
