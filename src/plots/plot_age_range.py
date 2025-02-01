@@ -1,14 +1,13 @@
 import matplotlib.pyplot as plt
 
-from data_management.create_data_split import DataSplitFile
-from data_management.data_set import NakoSingleFeatureDataset
-from utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureType, ModalityType
+from src.data_management.create_data_split import DataSplitFile
+from src.data_management.data_set import NakoSingleFeatureDataset
+from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, PLOTS_PATH, FeatureMapType
 
 
 def plot_age_range():
     ds_details = {
-        "modality": ModalityType.ANAT,
-        "feature_set": FeatureType.GM,
+        "feature_map": FeatureMapType.GM,
         "target": "age",
         "middle_slice": True
     }
@@ -24,4 +23,7 @@ def plot_age_range():
         plt.title('Distribution of Labels')
         plt.xlabel('Label Value')
         plt.ylabel('Count')
-        plt.savefig(fname=f"distribution_{path.stem}.png")
+        file_path = PLOTS_PATH / "variable_distributions" / f"distribution_{path.stem}.png"
+        if not file_path.parent.exists():
+            file_path.parent.mkdir(parents=True)
+        plt.savefig(fname=file_path)

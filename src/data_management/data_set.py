@@ -2,22 +2,21 @@ import torch
 from torch.utils.data import Dataset
 
 from src.data_management.mri_image_files import MriImageFile
-from src.utils.config import FeatureType, ModalityType
+from src.utils.config import FeatureMapType
 from src.utils.load_targets import extract_target
 from src.utils.subject_selection import sample_subject_ids
 
 class NakoSingleFeatureDataset(Dataset):
     """PyTorch Dataset class for the NAKO dataset and its MRI feature maps"""
-    def __init__(self, subject_ids: int, modality: ModalityType, feature_set: FeatureType, target: str, middle_slice: bool = True):
+    def __init__(self, subject_ids: int, feature_map: FeatureMapType, target: str, middle_slice: bool = True):
         self.subject_ids = subject_ids
         self.target = target
         self.labels = extract_target(target, subject_ids)
-        self.modalitiy = modality
-        self.feature_set = feature_set
+        self.feature_map = feature_map
         self.middle_slice = middle_slice
 
         # Get shape of one sample (without channel dimension)
-        image_file = MriImageFile(self.subject_ids[0], self.modalitiy, self.feature_set)
+        image_file = MriImageFile(self.subject_ids[0], self.feature_map)
         sample_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
         self.data_shape = tuple(sample_tensor.shape[1:])
 
@@ -27,7 +26,7 @@ class NakoSingleFeatureDataset(Dataset):
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
         # Load the feature map as a tensor
-        image_file = MriImageFile(subject_id, self.modalitiy, self.feature_set)
+        image_file = MriImageFile(subject_id, self.feature_map)
         feature_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
@@ -48,8 +47,7 @@ def sample_standard_data_sets(n_samples: int = 128, val_test_frac: float = 1/8) 
     test_idxs = sorted(test_idxs)
 
     params = {
-        "modality": ModalityType.ANAT,
-        "feature_set": FeatureType.GM,
+        "feature_map": FeatureMapType.GM,
         "target": "sex",
         "middle_slice": True
     }

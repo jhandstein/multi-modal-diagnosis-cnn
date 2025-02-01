@@ -4,4 +4,4 @@ models/**
 models_test/**
 nohup.out
 **/age_sex_split*
-src/plots/old/*
+plots/**

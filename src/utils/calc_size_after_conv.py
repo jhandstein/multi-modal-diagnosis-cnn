@@ -1,5 +1,5 @@
 from src.data_management.mri_image_files import MriImageFile
-from src.utils.config import FeatureType, ModalityType
+from src.utils.config import FeatureMapType
 
 # https://www.baeldung.com/cs/convolutional-layer-size
 class ConvCalculator:
@@ -27,13 +27,13 @@ class ConvCalculator:
         size = self._compute_conv_size(size)
         return size
     
-    def test_file(self, subject_id: int, modality: ModalityType, feature_map: FeatureType) -> None:
+    def test_file(self, subject_id: int, feature_map: FeatureMapType) -> None:
         """Test the ConvCalculator with a specific file."""
-        fm_map = MriImageFile(subject_id, modality, feature_map)
-        input_size = fm_map.get_size()[1:]
+        image_file = MriImageFile(subject_id, feature_map)
+        input_size = image_file.get_size()[1:]
         output_size = self.calculate_network_output_size(input_size)
-        print(f"Testing file: {fm_map.file_path}")
-        print(f"File parameters: {modality}, {feature_map}")
+        print(f"Testing file: {image_file.file_path}")
+        print(f"File parameters: {feature_map.modality_label}, {feature_map.label}")
         print(f"Input size feature map: {input_size}")
         print(f"Output size feature map (for FC layer): {output_size}")
 

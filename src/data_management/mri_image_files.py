@@ -4,28 +4,27 @@ import numpy as np
 import nibabel as nib 
 from pathlib import Path
 
-from src.utils.config import FMRI_PREP_FULL_SAMPLE, XCP_D_FULL_SAMPLE, FeatureType, ModalityType
+from src.utils.config import FMRI_PREP_FULL_SAMPLE, XCP_D_FULL_SAMPLE, FeatureMapType, ModalityType
 
 class MriImageFile:
     """
     Class to handle the loading of image / feature map files from the NAKO dataset
     """
 
-    def __init__(self, subject_id: int, scan_type: ModalityType, map_type: FeatureType):
+    def __init__(self, subject_id: int, feature_map: FeatureMapType):
         self.subject_id = subject_id
         self.token = f"sub-{subject_id}"
-        self.scan_type = scan_type
-        self.map_type = map_type
+        self.feature_map = feature_map
     
     @property
     def file_path(self) -> Path:
         """Returns the path to the feature map file"""
         # TODO: refine selection of paths (implement switch case)
-        if self.scan_type == ModalityType.ANAT:
+        if self.feature_map.modality == ModalityType.ANAT:
             return self._get_anat_path()
-        elif self.scan_type == ModalityType.FUNC:
+        elif self.feature_map.modality == ModalityType.FUNC:
             return self._get_func_path()
-        elif self.scan_type == ModalityType.RAW:
+        elif self.feature_map.modality == ModalityType.RAW:
             return self._get_smri_path()
         else:
             raise ValueError("Invalid scan type")
@@ -59,10 +58,10 @@ class MriImageFile:
         print(img.header.get_xyzt_units())
         
     def _get_anat_path(self) -> Path:
-        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_label-{self.map_type.value}_probseg.nii.gz")
+        return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_label-{self.feature_map.label}_probseg.nii.gz")
 
     def _get_func_path(self) -> Path:
-        return Path(XCP_D_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.map_type.value}.nii.gz")
+        return Path(XCP_D_FULL_SAMPLE, f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.feature_map.label}.nii.gz")
     
     def _get_smri_path(self) -> Path:
         return Path(FMRI_PREP_FULL_SAMPLE, f"{self.token}/ses-0/anat/{self.token}_ses-0_desc-preproc_T1w.nii.gz")

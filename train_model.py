@@ -15,7 +15,7 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnnClassification
 from src.utils.cuda_utils import check_cuda
 from src.utils.process_metrics import process_metrics_file
-from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureType, ModalityType
+from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureMapType
 
 
 def train_model():
@@ -29,12 +29,12 @@ def train_model():
     batch_size = 32 # should be maximum val_set size / num_gpus?
     epochs = 3
     task = "classification"
+    target = "sex" if task == "classification" else "age"
 
     # Prepare data sets and loaders
     ds_details = {
-        "modality": ModalityType.FUNC,
-        "feature_set": FeatureType.REHO,
-        "target": "sex" if task == "classification" else "age",
+        "feature_map": FeatureMapType.GM,
+        "target": target,
         "middle_slice": True
     }
 
@@ -59,8 +59,8 @@ def train_model():
 
     # Model name for logging
     dim = "2D"
-    modality = train_set.modalitiy.value
-    feature_map = train_set.feature_set.value
+    modality = train_set.feature_map.modality_label
+    feature_map = train_set.feature_map.label
     target = train_set.target
     model_name = f"CNN_{dim}_{modality}_{feature_map}_{task}_{target}"
 

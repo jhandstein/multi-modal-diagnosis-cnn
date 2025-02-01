@@ -50,8 +50,8 @@ class ExperimentTrackingCallback(Callback):
         
         # Store dataset indices
         self.dataset_info = {
-            "modality": train_set.modalitiy.value if train_set else None,
-            "feature_set": train_set.feature_set.value if train_set else None,
+            "modality": train_set.feature_map.modality_label if train_set else None,
+            "feature_map": train_set.feature_map.label if train_set else None,
             "len_train": len(train_set) if train_set else None,
             "len_val": len(val_set) if val_set else None,
             "len_test": len(test_set) if test_set else None,

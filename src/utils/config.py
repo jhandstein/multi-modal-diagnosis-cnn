@@ -13,7 +13,9 @@ NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_new
 FMRI_PREP_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/fmriprep")
 XCP_D_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/xcp_d")
 
+# Internal paths
 LOGS_PATH = Path("logs")
+PLOTS_PATH = Path("plots")
 
 # IDs for the subjects that have both sMRI and fMRI data
 # AVAILABLE_SUBJECT_IDS = Path("src/utils/subject_ids.txt")
@@ -30,17 +32,39 @@ class ModalityType(Enum):
     ANAT = "anat"
     FUNC = "func"
 
-class FeatureType(Enum):
+class FeatureMapType(Enum):
     """Enum for the different feature map types that can be extracted from the MRI data"""
-    # raw data
-    SMRI = "smri"
-    FMRI = "fmri"
+    
+    # raw data (RAW modality)
+    SMRI = ("smri", ModalityType.RAW)
+    FMRI = ("fmri", ModalityType.RAW)
 
-    # feature maps
-    GM = "GM"
-    WM = "WM"
-    CSF = "CSF"
-    REHO = "reho"
-    ALFF = "alff"
-    fALFF = "falff"
-    VMHC = "vmhc"
+    # sMRI maps (ANAT modality)
+    GM = ("GM", ModalityType.ANAT)
+    WM = ("WM", ModalityType.ANAT)
+    CSF = ("CSF", ModalityType.ANAT)
+
+    # rs-fMRI maps (FUNC modality)
+    REHO = ("reho", ModalityType.FUNC)
+    ALFF = ("alff", ModalityType.FUNC)
+    fALFF = ("falff", ModalityType.FUNC)
+    VMHC = ("vmhc", ModalityType.FUNC)
+
+    def __init__(self, feature_name: str, modality: ModalityType):
+        self._feature_name = feature_name
+        self._modality = modality
+
+    @property
+    def label(self) -> str:
+        """Returns the label of the feature map"""
+        return self._feature_name
+    
+    @property
+    def modality(self) -> str:
+        """Returns the modality of the feature map"""
+        return self._modality
+    
+    @property
+    def modality_label(self) -> str:
+        """Returns the modality label of the feature map"""
+        return self._modality.value

@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 
 from src.data_management.data_set import NakoSingleFeatureDataset
-from src.utils.config import FeatureType, ModalityType
+from src.utils.config import FeatureMapType
 
 
 @dataclass
 class DataSetConfig:
-    modality: ModalityType = ModalityType.ANAT
-    feature_set: FeatureType = FeatureType.GM
+    feature_map: FeatureMapType = FeatureMapType.GM
     target: str = "sex"
     middle_slice: bool = True
 

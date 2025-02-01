@@ -2,12 +2,11 @@ import matplotlib.pyplot as plt
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_set import NakoSingleFeatureDataset
 from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
-from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureType, ModalityType
+from src.utils.config import AGE_SEX_BALANCED_10K_PATH, AGE_SEX_BALANCED_1K_PATH, FeatureMapType
 
 def test_data_set_factory():
     ds_details = {
-        "modality": ModalityType.ANAT,
-        "feature_set": FeatureType.GM,
+        "feature_map": FeatureMapType.GM,
         "target": "sex",
         "middle_slice": True
     }
