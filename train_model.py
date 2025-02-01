@@ -27,12 +27,20 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 32 # should be maximum val_set size / num_gpus?
-    epochs = 3
+    epochs = 100
     task = "classification"
     target = "sex" if task == "classification" else "age"
     experiment_notes = {
         "notes": "First run with fMRI map"
     }
+    
+    # Experiment setup
+    if epochs > 10:
+        log_dir = Path("models")
+        data_split_path = AGE_SEX_BALANCED_10K_PATH
+    else:
+        log_dir = Path("models_test")
+        data_split_path = AGE_SEX_BALANCED_1K_PATH
 
     # Prepare data sets and loaders
     ds_details = {
@@ -41,24 +49,16 @@ def train_model():
         "middle_slice": True
     }
 
-    split_path = AGE_SEX_BALANCED_1K_PATH
-    # split_path = AGE_SEX_BALANCED_10K_PATH
-    data_split = DataSplitFile(split_path).load_data_splits_from_file()
+    # Create data sets and loaders
+    data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
     ds_config = DataSetConfig(**ds_details)
     train_set, val_set, test_set = DataSetFactory(data_split["train"], data_split["val"], data_split["test"], ds_config).create_data_sets()
 
-    # train_set, val_set, test_set = sample_standard_data_sets(n_samples=sample_size, val_test_frac=1/16)
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size, num_gpus=num_gpus)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Declare lightning wrapper model
     lightning_model = LightningWrapper2dCnnClassification(train_set.data_shape, task=task)
-    
-    # Experiment setup
-    if epochs > 10:
-        log_dir = Path("models")
-    else:
-        log_dir = Path("models_test")
 
     # Model name for logging
     dim = "2D"
@@ -66,7 +66,6 @@ def train_model():
     feature_map = train_set.feature_map.label
     target = train_set.target
     model_name = f"CNN_{dim}_{modality}_{feature_map}_{task}_{target}"
-
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
