@@ -56,7 +56,7 @@ class RegressionMetrics(BaseMetrics):
     def compute_metrics(self, y: np.ndarray, y_hat: np.ndarray) -> dict:
         metrics = {
             f"{self.phase}_r2": r2_score(y, y_hat),
-            f"{self.phase}_msa": mean_absolute_error(y, y_hat),
+            f"{self.phase}_mae": mean_absolute_error(y, y_hat),
             f"{self.phase}_mse": mean_squared_error(y, y_hat),
             f"{self.phase}_rmse": root_mean_squared_error(y, y_hat),
         }
