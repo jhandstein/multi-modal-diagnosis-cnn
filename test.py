@@ -1,4 +1,6 @@
+from pathlib import Path
 import matplotlib.pyplot as plt
+from src.plots.save_training_plot import plot_mae_mse
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_set import NakoSingleFeatureDataset
@@ -9,6 +11,7 @@ from src.utils.config import (
     FeatureMapType,
 )
 from src.testing._250131_first_data_splits import create_balanced_samples
+from src.utils.file_path_helper import construct_modal_name
 
 
 def test_data_set_factory():
@@ -23,9 +26,10 @@ def test_data_set_factory():
         [100000, 100005], [100006, 100010], [100011, 100015], ds_config
     )
     train_set, val_set, test_set = ds_factory.create_data_sets()
+    model_name = construct_modal_name(train_set, task="classification")
+    print(model_name)
 
 
 if __name__ == "__main__":
     print("Hello from test.py")
-    create_balanced_samples()
-    plot_age_range()
+    # test_data_set_factory()

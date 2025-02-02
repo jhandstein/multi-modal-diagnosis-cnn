@@ -48,7 +48,3 @@ def print_nccl_vars():
     print(f"NCCL_IB_DISABLE: {os.environ.get('NCCL_IB_DISABLE', 'Not set')}")
     print(f"NCCL_P2P_DISABLE: {os.environ.get('NCCL_P2P_DISABLE', 'Not set')}")
 
-
-def tensor_to_numpy(tensor: torch.Tensor):
-    """Convert a tensor to numpy array."""
-    return tensor.detach().cpu().numpy()

@@ -113,6 +113,7 @@ class ExperimentTrackingCallback(Callback):
                 "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "total_duration_seconds": round(duration.total_seconds(), 2),
                 "total_duration_minutes": round(duration.total_seconds() / 60, 2),
+                "total_duration_hours": round(duration.total_seconds() / 3600, 2),
                 "average_epoch_time_seconds": (
                     round(sum(self.epoch_times) / len(self.epoch_times), 2)
                     if self.epoch_times

@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def process_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFrame:
+def format_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFrame:
     """Process metrics CSV file to combine matching epochs and round values.
 
     Args:

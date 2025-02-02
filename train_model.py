@@ -15,14 +15,15 @@ from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set import sample_standard_data_sets
 from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
-from src.plots.save_training_plot import plot_training_metrics
+from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
     AGE_SEX_BALANCED_10K_PATH,
     FeatureMapType,
 )
 from src.utils.cuda_utils import check_cuda
-from src.utils.process_metrics import process_metrics_file
+from src.utils.process_metrics import format_metrics_file
+from utils.file_path_helper import construct_modal_name
 
 
 def train_model():
@@ -33,12 +34,12 @@ def train_model():
 
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
-    batch_size = 32  # should be maximum val_set size / num_gpus?
-    epochs = 100
-    task = "classification"
-    feature_map = FeatureMapType.REHO
+    batch_size = 64  # should be maximum val_set size / num_gpus?
+    epochs = 500
+    task = "regression"
+    feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    experiment_notes = {"notes": "First run with fMRI map"}
+    experiment_notes = {"notes": "Testing with 500 epochs and higher learning rate (1e-3 instead of 1e-4)."}
 
     # Experiment setup
     if epochs > 10:
@@ -73,11 +74,7 @@ def train_model():
     )
 
     # Model name for logging
-    dim = "2D"
-    modality = train_set.feature_map.modality_label
-    feature_map = train_set.feature_map.label
-    target = train_set.target
-    model_name = f"CNN_{dim}_{modality}_{feature_map}_{task}_{target}"
+    model_name = construct_modal_name(train_set, task=task, dim="2D")
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
@@ -121,12 +118,14 @@ def train_model():
 
     # Process metrics
     metrics_file = Path(logger.log_dir, "metrics.csv")
-    processed_file = Path(logger.log_dir, "metrics_processed.csv")
-    process_metrics_file(metrics_file, processed_file)
+    formatted_file = Path(logger.log_dir, "metrics_formatted.csv")
+    format_metrics_file(metrics_file, formatted_file)
 
     # Plot training metrics (after some time to allow for file writing)
     time.sleep(2)
-    plot_training_metrics(processed_file, task=task)
+    plot_training_metrics(formatted_file, task=task)
+    if task == "regression":
+        plot_mae_mse(formatted_file)
 
     # TODO: Test model
     def test_model():

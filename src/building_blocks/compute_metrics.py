@@ -25,6 +25,7 @@ class BaseMetrics:
         return self.compute_metrics(y, y_hat)
 
     def _tensor_to_numpy(self, tensor: torch.Tensor) -> np.ndarray:
+        """Convert tensor to numpy array."""
         return (
             tensor.detach().cpu().numpy()
             if tensor.requires_grad
