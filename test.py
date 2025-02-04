@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 from torchvision.models import resnet18
 
-from src.building_blocks.resnet18 import FlexibleResNet
 from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
@@ -42,33 +41,11 @@ def test_data_set_factory():
     end = time()
     print(f"Time elapsed: {end - start} seconds")
     
-def test_resnet():
-        # Example with smaller input dimensions
-    batch_size = 4
-    channels = 1
-    height = 96  # Can be any size that works with the architecture
-    width = 96
-    
-    # Create model instance
-    model = FlexibleResNet(
-        input_channels=channels,
-        num_classes=2  # For binary classification (e.g., sex)
-    )
-    
-    # Create dummy input
-    x = torch.randn(batch_size, channels, height, width)
-    
-    # Forward pass
-    output = model(x)
-    print(f"Input shape: {x.shape}")
-    print(f"Output shape: {output.shape}")
-    
-    return model
-
 
 if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
 
-
-    test_resnet()
+    path = Path("/home/julius/repositories/ccn_code/models_test/ResNet18Regression_2D_anat_GM_regression_age/version_1/metrics_formatted.csv")
+    plot_mae_mse(path)
+    plot_training_metrics(path, task="regression")

@@ -5,6 +5,7 @@ import lightning as L
 import torch
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
+from lightning.pytorch.tuner import Tuner
 
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
@@ -35,19 +36,22 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 3
-    task = "classification"
+    epochs = 10
+    learning_rate = 1e-3
+    task = "regression"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    experiment_notes = {"notes": "First time ResNet18."}
+    experiment_notes = {"notes": "First time ResNet18. LR of 1e-3 instead of 1e-2 for classification."}
 
     # Experiment setup
     if epochs > 10:
         log_dir = Path("models")
         data_split_path = AGE_SEX_BALANCED_10K_PATH
+        print("Training on 10k data set.")
     else:
         log_dir = Path("models_test")
         data_split_path = AGE_SEX_BALANCED_1K_PATH
+        print("Training on 1k data set.")
 
     # Prepare data sets and loaders
     ds_details = {
@@ -70,7 +74,7 @@ def train_model():
 
     # Declare lightning wrapper model
     lightning_wrapper = LightningWrapper2dCnn(
-        train_set.data_shape, task=task
+        train_set.data_shape, task=task, learning_rate=learning_rate
     )
 
     # Model name for logging
@@ -109,6 +113,15 @@ def train_model():
     }
 
     trainer = L.Trainer(**gpu_params, **training_params, **logging_params)
+
+    # lr_finder = Tuner(trainer)
+    # lr_finder.lr_find(lightning_wrapper)
+    # print("Learning rate finder results:", lr_finder.results)
+
+    # new_lr = lr_finder.suggestion()
+    # print("New learning rate:", new_lr)
+
+    # lightning_wrapper.hparams.learning_rate = new_lr
 
     trainer.fit(
         model=lightning_wrapper,

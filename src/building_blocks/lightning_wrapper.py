@@ -4,27 +4,22 @@ from typing import Literal
 from torch import optim, nn
 import torch
 
-from src.building_blocks.resnet18 import FlexibleResNet
+from src.building_blocks.resnet18 import ResNet18Binary, ResNet18Regression
 from src.building_blocks.compute_metrics import MetricsFactory
 from src.building_blocks.custom_model import ConvBranch2d
 
 
 class LightningWrapper2dCnn(L.LightningModule):
     def __init__(
-        self, input_shape: tuple, task: Literal["classification", "regression"]
+        self, input_shape: tuple, task: Literal["classification", "regression"], learning_rate: float = 1e-3
     ):
         super().__init__()
         self.task = task
 
         # Training building blocks
-        # self.model = ConvBranch2d(input_shape, task=task)
-        self.model = FlexibleResNet(
-            input_channels=1,
-            output_dim=2 if task == "classification" else 1,
-            task_type=task,
-            output_activation=None,
-        )
+        self.model = self._setup_model()
         self.loss_func = nn.BCELoss() if task == "classification" else nn.MSELoss()
+        self.learning_rate = learning_rate
         self.train_metrics = MetricsFactory.create_metrics(task, "train")
         self.val_metrics = MetricsFactory.create_metrics(task, "val")
 
@@ -36,6 +31,16 @@ class LightningWrapper2dCnn(L.LightningModule):
             "on_epoch": True,
             "on_step": False,
         }
+
+    def _setup_model(self):
+        if self.task == "classification":
+            # return ConvBranch2d(input_shape, task=self.task)
+            return ResNet18Binary(in_channels=1)
+        elif self.task == "regression":
+            # return ConvBranch2d(input_shape, task=self.task)
+            return ResNet18Regression(in_channels=1)
+        else:
+            raise ValueError(f"Task type {self.task} not supported.")
 
     def forward(self, x):
         return self.model(x)
@@ -133,8 +138,8 @@ class LightningWrapper2dCnn(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
