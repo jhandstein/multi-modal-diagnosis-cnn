@@ -39,6 +39,7 @@ def plot_training_metrics(
         ax2.tick_params(axis="y", labelcolor="tab:blue")
 
     # Set y-axis limits for accuracies
+    ax1.set_ylim(0, 1000)
     ax2.set_ylim(0, 1)
 
     # Add title and legend
@@ -74,6 +75,10 @@ def plot_mae_mse(file_path: Path):
     ax2.plot(df["epoch"], df["train_mse"], color="tab:green", label="Train MSE")
     ax2.plot(df["epoch"], df["val_mse"], color="tab:olive", label="Val MSE")
     ax2.tick_params(axis="y", labelcolor="tab:green")
+
+    # Add axis limits
+    ax1.set_ylim(0, 30)
+    ax2.set_ylim(0, 1000)
 
     # Add title and legend
     plt.title("Training and Validation Errors")

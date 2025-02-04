@@ -24,9 +24,9 @@ class NakoSingleFeatureDataset(Dataset):
         self.middle_slice = middle_slice
 
         # Get shape of one sample (without channel dimension)
-        image_file = MriImageFile(self.subject_ids[0], self.feature_map)
-        sample_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
-        self.data_shape = tuple(sample_tensor.shape[1:])
+        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_map).get_size()
+        if self.middle_slice:
+            self.data_shape = (self.data_shape[1:])
 
     def __len__(self):
         return int(len(self.subject_ids))
