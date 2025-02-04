@@ -23,7 +23,7 @@ from src.utils.config import (
 )
 from src.utils.cuda_utils import check_cuda
 from src.utils.process_metrics import format_metrics_file
-from utils.file_path_helper import construct_modal_name
+from src.utils.file_path_helper import construct_model_name
 
 
 def train_model():
@@ -35,11 +35,11 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 500
-    task = "regression"
+    epochs = 3
+    task = "classification"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    experiment_notes = {"notes": "Testing with 500 epochs and higher learning rate (1e-3 instead of 1e-4)."}
+    experiment_notes = {"notes": "First time ResNet18."}
 
     # Experiment setup
     if epochs > 10:
@@ -69,12 +69,12 @@ def train_model():
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
     # Declare lightning wrapper model
-    lightning_model = LightningWrapper2dCnn(
+    lightning_wrapper = LightningWrapper2dCnn(
         train_set.data_shape, task=task
     )
 
     # Model name for logging
-    model_name = construct_modal_name(train_set, task=task, dim="2D")
+    model_name = construct_model_name(lightning_wrapper.model, train_set, task=task, dim="2D")
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
@@ -111,7 +111,7 @@ def train_model():
     trainer = L.Trainer(**gpu_params, **training_params, **logging_params)
 
     trainer.fit(
-        model=lightning_model,
+        model=lightning_wrapper,
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )

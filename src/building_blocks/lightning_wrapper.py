@@ -4,8 +4,9 @@ from typing import Literal
 from torch import optim, nn
 import torch
 
+from src.building_blocks.resnet18 import FlexibleResNet
 from src.building_blocks.compute_metrics import MetricsFactory
-from src.building_blocks.layers import ConvBranch2d
+from src.building_blocks.custom_model import ConvBranch2d
 
 
 class LightningWrapper2dCnn(L.LightningModule):
@@ -16,7 +17,13 @@ class LightningWrapper2dCnn(L.LightningModule):
         self.task = task
 
         # Training building blocks
-        self.model = ConvBranch2d(input_shape, task=self.task)
+        # self.model = ConvBranch2d(input_shape, task=task)
+        self.model = FlexibleResNet(
+            input_channels=1,
+            output_dim=2 if task == "classification" else 1,
+            task_type=task,
+            output_activation=None,
+        )
         self.loss_func = nn.BCELoss() if task == "classification" else nn.MSELoss()
         self.train_metrics = MetricsFactory.create_metrics(task, "train")
         self.val_metrics = MetricsFactory.create_metrics(task, "val")
@@ -126,8 +133,8 @@ class LightningWrapper2dCnn(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-4)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
