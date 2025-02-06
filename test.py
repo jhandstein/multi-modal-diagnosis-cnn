@@ -9,8 +9,8 @@ from torchvision.models import resnet18
 from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import NakoSingleFeatureDataset
-from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
+from src.data_management.data_set import DataSetConfig, NakoSingleFeatureDataset
+from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     AGE_SEX_BALANCED_1K_PATH,
@@ -21,18 +21,20 @@ from src.utils.file_path_helper import construct_model_name
 
 
 def test_data_set_factory():
-    ds_details = {
-        "feature_map": FeatureMapType.GM,
-        "target": "sex",
-        "middle_slice": True,
-    }
 
     # start timer
     start = time()
 
-    ds_config = DataSetConfig(**ds_details)
+    ds_config = DataSetConfig(
+        feature_map=FeatureMapType.GM,
+        target="sex",
+        middle_slice=True
+        )
     ds_factory = DataSetFactory(
-        [100000, 100005], [100006, 100010], [100011, 100015], ds_config
+        [100000, 100005], 
+        [100006, 100010], 
+        [100011, 100015], 
+        ds_config
     )
     train_set, val_set, test_set = ds_factory.create_data_sets()
     print("Shape:", train_set.data_shape)

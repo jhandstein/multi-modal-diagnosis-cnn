@@ -1,14 +1,4 @@
-from dataclasses import dataclass
-
-from src.data_management.data_set import NakoSingleFeatureDataset
-from src.utils.config import FeatureMapType
-
-
-@dataclass
-class DataSetConfig:
-    feature_map: FeatureMapType = FeatureMapType.GM
-    target: str = "sex"
-    middle_slice: bool = True
+from src.data_management.data_set import DataSetConfig, NakoSingleFeatureDataset
 
 
 class DataSetFactory:
@@ -31,4 +21,4 @@ class DataSetFactory:
         return train_set, val_set, test_set
 
     def create_set(self, ids) -> NakoSingleFeatureDataset:
-        return NakoSingleFeatureDataset(ids, **self.config.__dict__)
+        return NakoSingleFeatureDataset(ids, self.config)

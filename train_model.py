@@ -7,6 +7,7 @@ from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
 from lightning.pytorch.tuner import Tuner
 
+from src.data_management.data_set import DataSetConfig
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
     ExperimentTrackingCallback,
@@ -14,8 +15,7 @@ from src.building_blocks.metrics_callbacks import (
 )
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import prepare_standard_data_loaders
-from src.data_management.data_set import sample_standard_data_sets
-from src.data_management.data_set_factory import DataSetConfig, DataSetFactory
+from src.data_management.data_set_factory import DataSetFactory
 from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
@@ -36,7 +36,8 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 10
+    epochs = 3
+    # TODO: separate optimizer settings and learning rate finding
     learning_rate = 1e-3
     task = "regression"
     feature_map = FeatureMapType.GM
@@ -54,15 +55,13 @@ def train_model():
         print("Training on 1k data set.")
 
     # Prepare data sets and loaders
-    ds_details = {
-        "feature_map": feature_map,
-        "target": target,
-        "middle_slice": True,
-    }
-
-    # Create data sets and loaders
+    ds_config = DataSetConfig(
+        feature_map=feature_map,
+        target=target,
+        middle_slice=True
+        )
     data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
-    ds_config = DataSetConfig(**ds_details)
+    
     train_set, val_set, test_set = DataSetFactory(
         data_split["train"], data_split["val"], data_split["test"], ds_config
     ).create_data_sets()
@@ -151,14 +150,6 @@ def train_model():
 
         # Set model into evaluation mode
         lightning_model.eval()
-
-
-def print_ds_indices():
-    train_set, val_set, test_set = sample_standard_data_sets(n_samples=1024)
-    print("Data set indices:")
-    print(train_set.subject_ids)
-    print(val_set.subject_ids)
-    print(test_set.subject_ids)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import NakoSingleFeatureDataset
+from src.data_management.data_set import DataSetConfig, NakoSingleFeatureDataset
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     AGE_SEX_BALANCED_1K_PATH,
@@ -11,18 +11,18 @@ from src.utils.config import (
 
 
 def plot_age_range():
-    ds_details = {
-        "feature_map": FeatureMapType.GM,
-        "target": "age",
-        "middle_slice": True,
-    }
+    ds_config = DataSetConfig(
+        feature_map=FeatureMapType.GM,
+        target="age",
+        middle_slice=True
+        )
 
     for path in [AGE_SEX_BALANCED_1K_PATH, AGE_SEX_BALANCED_10K_PATH]:
 
         split_path = path
         data_split = DataSplitFile(split_path).load_data_splits_from_file()
         full_set = NakoSingleFeatureDataset(
-            data_split["train"] + data_split["val"] + data_split["test"], **ds_details
+            data_split["train"] + data_split["val"] + data_split["test"], ds_config
         )
 
         plt.figure(figsize=(10, 6))
