@@ -7,6 +7,7 @@ from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
 from lightning.pytorch.tuner import Tuner
 
+from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
 from src.data_management.data_set import DataSetConfig
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
@@ -36,7 +37,7 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 3
+    epochs = 2
     # TODO: separate optimizer settings and learning rate finding
     learning_rate = 1e-3
     task = "regression"
@@ -59,7 +60,7 @@ def train_model():
         feature_map=feature_map,
         target=target,
         middle_slice=True
-        )
+    )
     data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
     
     train_set, val_set, test_set = DataSetFactory(
@@ -91,27 +92,12 @@ def train_model():
         notes=experiment_notes,
     )
 
-    gpu_params = {
-        "accelerator": "gpu" if torch.cuda.is_available() else None,
-        "devices": num_gpus,
-        "strategy": "ddp",
-        "sync_batchnorm": True,
-        # benchmark interferes with reproducibility from seed_everything and deterministic
-        "benchmark": False,  # best algorithm for your hardware, only works with homogenous input sizes
-    }
-
-    training_params = {
-        "deterministic": True,  # works together with seed_everything to ensure reproducibility across runs
-        "max_epochs": epochs,
-    }
-
-    logging_params = {
-        "log_every_n_steps": 1,
-        "callbacks": [print_callback, json_callback],
-        "logger": logger,
-    }
-
-    trainer = L.Trainer(**gpu_params, **training_params, **logging_params)
+    # Trainer setup
+    trainer_config = LightningTrainerConfig(
+        devices=num_gpus,
+        max_epochs=epochs,
+    )
+    trainer = L.Trainer(**trainer_config.dict(), callbacks=[print_callback, json_callback], logger=logger)
 
     # lr_finder = Tuner(trainer)
     # lr_finder.lr_find(lightning_wrapper)
