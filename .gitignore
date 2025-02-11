@@ -6,3 +6,5 @@ nohup.out
 **/age_sex_split*
 plots/**
 .venv/**
+.lr_find_**
+**/lr_finder_results.png

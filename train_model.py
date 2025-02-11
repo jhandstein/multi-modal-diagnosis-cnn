@@ -37,13 +37,13 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 2
-    # TODO: separate optimizer settings and learning rate finding
-    learning_rate = 1e-3
+    epochs = 200
+    # 5e-4 for ResNet regression, 0.01 for classification..???
+    learning_rate = 5e-4
     task = "regression"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    experiment_notes = {"notes": "First time ResNet18. LR of 1e-3 instead of 1e-2 for classification."}
+    experiment_notes = {"notes": "First time with automatically selected learning rate."}
 
     # Experiment setup
     if epochs > 10:

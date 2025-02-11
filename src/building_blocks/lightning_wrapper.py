@@ -4,9 +4,9 @@ from typing import Literal
 from torch import optim, nn
 import torch
 
+from src.building_blocks.custom_model import ConvBranch2dBinary, ConvBranch2dRegression
 from src.building_blocks.resnet18 import ResNet18Binary, ResNet18Regression
 from src.building_blocks.compute_metrics import MetricsFactory
-from src.building_blocks.custom_model import ConvBranch2d
 
 
 class LightningWrapper2dCnn(L.LightningModule):
@@ -15,6 +15,7 @@ class LightningWrapper2dCnn(L.LightningModule):
     ):
         super().__init__()
         self.task = task
+        self.input_shape = input_shape
 
         # Training building blocks
         self.model = self._setup_model()
@@ -34,11 +35,11 @@ class LightningWrapper2dCnn(L.LightningModule):
 
     def _setup_model(self):
         if self.task == "classification":
-            # return ConvBranch2d(input_shape, task=self.task)
-            return ResNet18Binary(in_channels=1)
+            return ConvBranch2dBinary(self.input_shape)
+            # return ResNet18Binary(in_channels=1)
         elif self.task == "regression":
-            # return ConvBranch2d(input_shape, task=self.task)
-            return ResNet18Regression(in_channels=1)
+            return ConvBranch2dRegression(self.input_shape)
+            # return ResNet18Regression(in_channels=1)
         else:
             raise ValueError(f"Task type {self.task} not supported.")
 
@@ -139,7 +140,7 @@ class LightningWrapper2dCnn(L.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.5)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

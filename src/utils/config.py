@@ -25,7 +25,7 @@ AVAILABLE_SUBJECT_IDS = Path(
 )
 
 # IDs for the subjects that have high quality sMRI and fMRI data
-# High quality fMRI also means that sMRI is high quality
+# High quality fMRI also means that sMRI is high quality..?
 HIGH_QUALITY_SMRI_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_sMRI_high_quality.tsv",

@@ -6,6 +6,9 @@ import torch
 import torch.nn as nn
 from torchvision.models import resnet18
 
+from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
+from src.data_management.data_loader import prepare_standard_data_loaders
+from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
@@ -42,12 +45,13 @@ def test_data_set_factory():
     # end timer
     end = time()
     print(f"Time elapsed: {end - start} seconds")
-    
+
+def find_lr():
+    sug_rate = estimate_initial_learning_rate()
+    print(sug_rate)
 
 if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
 
-    path = Path("/home/julius/repositories/ccn_code/models_test/ResNet18Regression_2D_anat_GM_regression_age/version_1/metrics_formatted.csv")
-    plot_mae_mse(path)
-    plot_training_metrics(path, task="regression")
+    find_lr()
