@@ -61,7 +61,7 @@ def estimate_initial_learning_rate():
     # Get suggestion
     suggested_lr = lr_finder.suggestion()
     print(suggested_lr)
-    model_name = lightning_wrapper.model.__class__.__name__
+    model_name = f"{lightning_wrapper.model.__class__.__name__}_batch_size_{batch_size}"
     plot_lr_finder_results(lr_finder, model_name)
 
     return suggested_lr

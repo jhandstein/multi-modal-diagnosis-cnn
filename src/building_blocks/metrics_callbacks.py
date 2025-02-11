@@ -60,6 +60,7 @@ class ExperimentTrackingCallback(Callback):
         self.validation_losses = []
         self.best_loss = float("inf")
         self.batch_size = batch_size
+        self.initial_lr = None
         self.notes = notes
 
         # Store dataset indices
@@ -77,6 +78,8 @@ class ExperimentTrackingCallback(Callback):
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         self.start_time = datetime.now()
+        # Log initial learning rate
+        self.initial_lr = trainer.optimizers[0].param_groups[0]["lr"]
         print(f"Training started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     @rank_zero_only
@@ -119,6 +122,9 @@ class ExperimentTrackingCallback(Callback):
                     if self.epoch_times
                     else 0
                 ),
+            },
+            "training_params": {
+                "initial_lr": self.initial_lr,
                 "epochs_completed": len(self.epoch_times),
                 "batch_size": self.batch_size,
                 **self.notes,
