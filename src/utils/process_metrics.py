@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def format_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFrame:
+def format_metrics_file(csv_path: Path) -> pd.DataFrame:
     """Process metrics CSV file to combine matching epochs and round values.
 
     Args:
@@ -24,9 +24,10 @@ def format_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFram
     # exclude columns that are not meant to be rounded like learning_rate
     numeric_cols = numeric_cols[~numeric_cols.str.contains("learning_rate")]
     df[numeric_cols] = df[numeric_cols].round(4)
+    df['learning_rate'] = df['learning_rate'].apply(lambda x: f'{x:.3e}')
 
     # Save if output path provided
-    if output_path:
-        df.to_csv(output_path, index=False)
+    out_path = csv_path.parent / f"{csv_path.stem}_formatted.csv"
+    df.to_csv(out_path, index=False)
 
     return df

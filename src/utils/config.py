@@ -84,3 +84,20 @@ class FeatureMapType(Enum):
     def modality_label(self) -> str:
         """Returns the modality label of the feature map"""
         return self._modality.value
+
+class TrainingMetric(Enum):
+    # Main metrics
+    LOSS = "loss"
+    ACCURACY = "accuracy"
+    R2 = "r2"
+
+    # Binary classification metrics
+    F1 = "f1"
+    PRECISION = "precision"
+    RECALL = "recall"
+    AUC = "auc"
+
+    # Regression metrics
+    MAE = "mae"
+    MSE = "mse"
+    RMSE = "rmse"

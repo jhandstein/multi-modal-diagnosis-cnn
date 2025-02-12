@@ -43,7 +43,8 @@ class ValidationPrintCallback(Callback):
         )
 
 
-class ExperimentTrackingCallback(Callback):
+class ExperimentSetupLogger(Callback):
+    """Logs initial experiment configuration and setup parameters"""
     def __init__(
         self,
         logger=None,
@@ -51,18 +52,14 @@ class ExperimentTrackingCallback(Callback):
         val_set: NakoSingleFeatureDataset = None,
         test_set: NakoSingleFeatureDataset = None,
         batch_size: int = None,
+        num_gpus: int = None,
         notes: dict = {},
     ):
         self.logger = logger
-        self.start_time = None
-        self.epoch_times = []
-        self.last_epoch_time = None
-        self.validation_losses = []
-        self.best_loss = float("inf")
         self.batch_size = batch_size
-        self.initial_lr = None
+        self.num_gpus = num_gpus
         self.notes = notes
-
+        
         # Store dataset indices
         self.dataset_info = {
             "modality": train_set.feature_map.modality_label if train_set else None,
@@ -77,9 +74,45 @@ class ExperimentTrackingCallback(Callback):
 
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
+        """Log experiment setup parameters before training starts"""
+        initial_lr = trainer.optimizers[0].param_groups[0]["lr"]
+        
+        setup_info = {
+            "training_params": {
+                "initial_lr": initial_lr,
+                "batch_size": self.batch_size,
+                "num_gpus": self.num_gpus,
+                "max_epochs": trainer.max_epochs,
+                **self.notes,
+            },
+            "dataset_info": self.dataset_info,
+            "model_info": {
+                "lightning_wrapper": pl_module.__class__.__name__,
+                "model_architecture": pl_module.model.__class__.__name__,
+                "model_params": sum(p.numel() for p in pl_module.model.parameters() if p.requires_grad),
+                "total_params": sum(p.numel() for p in pl_module.parameters() if p.requires_grad),
+            }
+        }
+
+        if self.logger and self.logger.log_dir:
+            log_file = Path(self.logger.log_dir) / "experiment_setup.json"
+            with open(log_file, "w") as f:
+                json.dump(setup_info, f, indent=4)
+
+
+class TrainingProgressTracker(Callback):
+    """Tracks and logs training progress metrics"""
+    def __init__(self, logger=None):
+        self.logger = logger
+        self.start_time = None
+        self.epoch_times = []
+        self.last_epoch_time = None
+        self.validation_losses = []
+        self.best_loss = float("inf")
+
+    @rank_zero_only
+    def on_train_start(self, trainer, pl_module):
         self.start_time = datetime.now()
-        # Log initial learning rate
-        self.initial_lr = trainer.optimizers[0].param_groups[0]["lr"]
         print(f"Training started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     @rank_zero_only
@@ -94,53 +127,39 @@ class ExperimentTrackingCallback(Callback):
 
     @rank_zero_only
     def on_validation_epoch_end(self, trainer, pl_module):
-        val_loss = trainer.callback_metrics.get("val_loss")
+        # Log validation loss
+        metrics = trainer.callback_metrics
+        val_loss = metrics.get("val_loss")
 
         if val_loss is not None:
             self.validation_losses.append(val_loss)
             if val_loss < self.best_loss:
                 self.best_loss = val_loss
-            # else:
-            #     print("No improvement in loss")
-        else:
-            print(f"No validation loss logged at epoch {trainer.current_epoch}")
 
     @rank_zero_only
     def on_fit_end(self, trainer, pl_module):
         end_time = datetime.now()
         duration = end_time - self.start_time
 
-        experiment_info = {
+        training_info = {
             "timing": {
                 "start_time": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "total_duration_seconds": round(duration.total_seconds(), 2),
                 "total_duration_minutes": round(duration.total_seconds() / 60, 2),
                 "total_duration_hours": round(duration.total_seconds() / 3600, 2),
-                "average_epoch_time_seconds": (
-                    round(sum(self.epoch_times) / len(self.epoch_times), 2)
-                    if self.epoch_times
-                    else 0
-                ),
-            },
-            "training_params": {
-                "initial_lr": self.initial_lr,
-                "epochs_completed": len(self.epoch_times),
-                "batch_size": self.batch_size,
-                **self.notes,
+                "average_epoch_time_seconds": round(sum(self.epoch_times) / len(self.epoch_times), 2) if self.epoch_times else 0,
+                "epoch_times": self.epoch_times
             },
             "metrics": {
-                "validation_losses": [
-                    tensor.item() for tensor in self.validation_losses
-                ],
-                "best_loss": (
-                    self.best_loss.item() if self.best_loss != float("inf") else None
-                ),
-            },
-            "dataset_info": self.dataset_info,
+                "validation_losses": [tensor.item() for tensor in self.validation_losses],
+                "best_loss": self.best_loss.item() if self.best_loss != float("inf") else None,
+                "final_metrics": {k: v.item() if hasattr(v, 'item') else v 
+                                for k, v in trainer.callback_metrics.items()}
+            }
         }
 
         if self.logger and self.logger.log_dir:
-            log_file = Path(self.logger.log_dir) / "experiment_info.json"
+            log_file = Path(self.logger.log_dir) / "training_progress.json"
             with open(log_file, "w") as f:
-                json.dump(experiment_info, f, indent=4)
+                json.dump(training_info, f, indent=4)

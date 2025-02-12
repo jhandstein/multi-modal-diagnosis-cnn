@@ -36,6 +36,7 @@ class LightningWrapper2dCnn(L.LightningModule):
     def _setup_model(self):
         if self.task == "classification":
             return ConvBranch2dBinary(self.input_shape)
+            # TODO: Find stable lr for ResNet18 before using it
             # return ResNet18Binary(in_channels=1)
         elif self.task == "regression":
             return ConvBranch2dRegression(self.input_shape)
@@ -51,12 +52,22 @@ class LightningWrapper2dCnn(L.LightningModule):
         x, y = batch
         y_hat = self.model(x)
 
+        # TODO: Remove debug prints
+        # Add these debug prints
+        # print(f"y_hat range: {y_hat.min().item():.3f} to {y_hat.max().item():.3f}")
+        # print(f"y unique values: {y.unique().tolist()}")
+
+        # print(f"Label distribution: {y.mean().item():.3f}")  # Should be around 0.5 for balanced data
+
         # Validate labels for binary classification
         if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
 
         # Compute loss
         loss = self.loss_func(y_hat, y)
+
+        # Debugging
+        # print(f"Batch loss: {loss.item():.3f}")
 
         # Store predictions for later metric computation
         self.train_step_outputs.append(
@@ -87,6 +98,10 @@ class LightningWrapper2dCnn(L.LightningModule):
             **self.train_metrics(y, y_hat),
         }
         self.log_dict(metrics_dict, **self.logging_params)
+
+        # Log current learning rate
+        current_lr = self.optimizers().param_groups[0]['lr']
+        self.log("learning_rate", current_lr, **self.logging_params)
 
         # Clear saved outputs
         self.train_step_outputs.clear()
@@ -140,11 +155,13 @@ class LightningWrapper2dCnn(L.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.5)
+        # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.3)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-6)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
+                "monitor": "val_loss",
                 "interval": "epoch",
                 "frequency": 1,  # every epoch
             },

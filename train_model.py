@@ -7,17 +7,18 @@ from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
 from lightning.pytorch.tuner import Tuner
 
+from src.plots.plot_metrics import plot_all_metrics
 from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
 from src.data_management.data_set import DataSetConfig
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
-    ExperimentTrackingCallback,
+    ExperimentSetupLogger,
+    TrainingProgressTracker,
     ValidationPrintCallback,
 )
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
-from src.plots.save_training_plot import plot_mae_mse, plot_training_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
     AGE_SEX_BALANCED_10K_PATH,
@@ -37,16 +38,15 @@ def train_model():
     # Set parameters for training
     num_gpus = torch.cuda.device_count()
     batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 200
-    # 5e-4 for ResNet regression, 0.01 for classification..???
-    learning_rate = 5e-4
+    epochs = 2
+    learning_rate = 5e-5
     task = "regression"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    experiment_notes = {"notes": "First time with automatically selected learning rate."}
+    experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
 
     # Experiment setup
-    if epochs > 10:
+    if epochs > 20:
         log_dir = Path("models")
         data_split_path = AGE_SEX_BALANCED_10K_PATH
         print("Training on 10k data set.")
@@ -83,13 +83,18 @@ def train_model():
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
     print_callback = ValidationPrintCallback(logger=logger)
-    json_callback = ExperimentTrackingCallback(
+
+    setup_logger = ExperimentSetupLogger(
         logger=logger,
         train_set=train_set,
         val_set=val_set,
         test_set=test_set,
         batch_size=batch_size,
+        num_gpus=num_gpus,
         notes=experiment_notes,
+    )
+    progress_logger = TrainingProgressTracker(
+        logger=logger,
     )
 
     # Trainer setup
@@ -97,16 +102,7 @@ def train_model():
         devices=num_gpus,
         max_epochs=epochs,
     )
-    trainer = L.Trainer(**trainer_config.dict(), callbacks=[print_callback, json_callback], logger=logger)
-
-    # lr_finder = Tuner(trainer)
-    # lr_finder.lr_find(lightning_wrapper)
-    # print("Learning rate finder results:", lr_finder.results)
-
-    # new_lr = lr_finder.suggestion()
-    # print("New learning rate:", new_lr)
-
-    # lightning_wrapper.hparams.learning_rate = new_lr
+    trainer = L.Trainer(**trainer_config.dict(), callbacks=[print_callback, setup_logger, progress_logger], logger=logger)
 
     trainer.fit(
         model=lightning_wrapper,
@@ -116,14 +112,12 @@ def train_model():
 
     # Process metrics
     metrics_file = Path(logger.log_dir, "metrics.csv")
-    formatted_file = Path(logger.log_dir, "metrics_formatted.csv")
-    format_metrics_file(metrics_file, formatted_file)
+    format_metrics_file(metrics_file)
 
     # Plot training metrics (after some time to allow for file writing)
     time.sleep(2)
-    plot_training_metrics(formatted_file, task=task)
-    if task == "regression":
-        plot_mae_mse(formatted_file)
+    formatted_file = Path(metrics_file.parent, f"{metrics_file.stem}_formatted.csv")
+    plot_all_metrics(formatted_file, task=task, splits=["train", "val"])
 
     # TODO: Test model
     def test_model():

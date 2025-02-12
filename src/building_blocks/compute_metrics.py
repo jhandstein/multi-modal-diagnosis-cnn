@@ -70,7 +70,9 @@ class MetricsFactory:
         task: Literal["classification", "regression"],
         phase: Literal["train", "val", "test"],
     ) -> BaseMetrics:
-        # TODO: Add not implemented for other tasks
         if task == "classification":
             return ClassificationMetrics(phase)
-        return RegressionMetrics(phase)
+        elif task == "regression":
+            return RegressionMetrics(phase)
+        else:
+            raise ValueError(f"Task type {task} not supported.")
