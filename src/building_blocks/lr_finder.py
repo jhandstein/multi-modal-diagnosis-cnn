@@ -58,9 +58,12 @@ def estimate_initial_learning_rate():
     lr_finder = tuner.lr_find(lightning_wrapper, train_dataloaders=train_loader, val_dataloaders=val_loader)
     # TODO: Add batch size finder
 
-    # Get suggestion
+    # Get suggestion and adjust it
     suggested_lr = lr_finder.suggestion()
-    print(suggested_lr)
+    adjusted_lr = suggested_lr / 10  # Use 1/10th of the suggested value, recommended by the authors?
+    print(f"Suggested LR: {suggested_lr}")
+    print(f"Adjusted LR: {adjusted_lr}")
+
     model_name = f"{lightning_wrapper.model.__class__.__name__}_batch_size_{batch_size}"
     plot_lr_finder_results(lr_finder, model_name)
 

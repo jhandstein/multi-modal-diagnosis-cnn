@@ -21,6 +21,8 @@ def format_metrics_file(csv_path: Path, output_path: Path = None) -> pd.DataFram
 
     # Round all numeric columns to 4 decimals
     numeric_cols = df.select_dtypes(include=["float64"]).columns
+    # exclude columns that are not meant to be rounded like learning_rate
+    numeric_cols = numeric_cols[~numeric_cols.str.contains("learning_rate")]
     df[numeric_cols] = df[numeric_cols].round(4)
 
     # Save if output path provided

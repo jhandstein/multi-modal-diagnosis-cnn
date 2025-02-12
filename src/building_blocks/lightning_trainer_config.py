@@ -6,6 +6,13 @@ import torch
 
 @dataclass
 class LightningTrainerConfig():
+    """
+    Dataclass for Lightning Trainer configuration. Provides default values for all parameters.
+    
+    Important parameters to manually set:
+    - max_epochs
+    - devices (number of GPUs)
+    """
     # GPU parameters
     accelerator: Optional[str] = "gpu" if torch.cuda.is_available() else None
     devices: int = 1 # number of GPUs
