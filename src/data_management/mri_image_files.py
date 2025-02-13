@@ -35,13 +35,34 @@ class MriImageFile:
         else:
             raise ValueError("Invalid scan type")
 
-    def load_as_tensor(self, middle_slice: bool = True) -> torch.tensor:
-        """Loads the feature map file as a torch tensor"""
+    def load_as_tensor(self, middle_slice: bool = True, slice_dim: int = 0) -> torch.tensor:
+        """Loads the feature map file as a torch tensor
+        
+        Args:
+            middle_slice (bool): If True, extracts the middle slice from the specified dimension
+            slice_dim (int): Dimension from which to take the slice (0, 1, or 2)
+        
+        Returns:
+            torch.tensor: The loaded tensor with shape (1, dim1, dim2) where dim1 and dim2
+                        depend on which dimension was sliced or (1, dim1, dim2, dim3) if no slice
+        """
         # Load the feature map as a float tensor
         t = torch.from_numpy(self.load_array()).float()
-        # Extract only the middle slice
+        
+        # Extract the middle slice from the specified dimension
         if middle_slice:
-            t = t[t.shape[0] // 2]
+            if slice_dim not in [0, 1, 2]:
+                raise ValueError("slice_dim must be 0, 1, or 2")
+            
+            # Select the middle slice using indexing for the specified dimension
+            slice_idx = t.shape[slice_dim] // 2
+            if slice_dim == 0:
+                t = t[slice_idx]
+            elif slice_dim == 1:
+                t = t[:, slice_idx]
+            else:  # slice_dim == 2
+                t = t[:, :, slice_idx]
+        
         # Add a channel dimension
         t = t.unsqueeze(0)
         return t
@@ -78,5 +99,6 @@ class MriImageFile:
     def _get_smri_path(self) -> Path:
         return Path(
             FMRI_PREP_FULL_SAMPLE,
-            f"{self.token}/ses-0/anat/{self.token}_ses-0_desc-preproc_T1w.nii.gz",
+            f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz"
         )
+    

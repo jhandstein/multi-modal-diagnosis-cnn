@@ -85,13 +85,13 @@ class ExperimentSetupLogger(Callback):
                 "max_epochs": trainer.max_epochs,
                 **self.notes,
             },
-            "dataset_info": self.dataset_info,
             "model_info": {
                 "lightning_wrapper": pl_module.__class__.__name__,
                 "model_architecture": pl_module.model.__class__.__name__,
                 "model_params": sum(p.numel() for p in pl_module.model.parameters() if p.requires_grad),
                 "total_params": sum(p.numel() for p in pl_module.parameters() if p.requires_grad),
-            }
+            },
+            "dataset_info": self.dataset_info
         }
 
         if self.logger and self.logger.log_dir:

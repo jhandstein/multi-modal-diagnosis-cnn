@@ -49,7 +49,13 @@ class ModalityType(Enum):
 
 
 class FeatureMapType(Enum):
-    """Enum for the different feature map types that can be extracted from the MRI data"""
+    """
+    Enum for the different feature map types that can be extracted from the MRI data
+    
+    fm.label: Label of the feature map
+    fm.modality: Modality of the feature map
+    fm.modality_label: Modality label of the feature map
+    """
 
     # raw data (RAW modality)
     SMRI = ("smri", ModalityType.RAW)

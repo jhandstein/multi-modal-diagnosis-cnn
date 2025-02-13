@@ -5,7 +5,6 @@ from torch.utils.data import Dataset
 from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureMapType
 from src.utils.load_targets import extract_target
-from src.utils.subject_selection import sample_subject_ids
 
 @dataclass
 class DataSetConfig:

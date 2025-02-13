@@ -6,19 +6,21 @@ from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import PLOTS_PATH, FeatureMapType
 
 
-def plot_mri_slice(subject_id: int, title: str = None):
+def plot_mri_slice(subject_id: int, feature_map = FeatureMapType.GM, slice_dim: int = 0):
     """
     Plots an MRI slice as a 2D image
     """
-    mri_slice = MriImageFile(subject_id, FeatureMapType.SMRI).load_as_tensor(
-        middle_slice=True
-    )
-    mri_slice = mri_slice.numpy().reshape(256, 256)
+    
+
+    mri_slice = MriImageFile(subject_id, feature_map).load_as_tensor(
+        middle_slice=True,
+        slice_dim=slice_dim
+    ).squeeze()
+    mri_slice = mri_slice.numpy()
+
     plt.imshow(mri_slice, cmap="gray")
     plt.axis("off")
-    if title:
-        plt.title(title)
-    file_path = PLOTS_PATH / "mri_slices" / f"slice_{subject_id}.png"
+    file_path = PLOTS_PATH / "mri_slices" / f"slice_{subject_id}_map{feature_map.label}_dim{slice_dim}.png"
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
     plt.savefig(file_path)
