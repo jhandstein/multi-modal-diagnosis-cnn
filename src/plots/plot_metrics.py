@@ -112,6 +112,12 @@ def plot_main_metrics(
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="center right")
+
+    # Set axis limit between 0 and 1 for accuracy/r2
+    if task == "classification":
+        ax2.set_ylim(0, 1)
+    else:
+        ax2.set_ylim(-1, 1)
     
     # Save plot
     plt.tight_layout()

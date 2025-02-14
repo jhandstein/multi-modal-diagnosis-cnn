@@ -4,21 +4,20 @@ from typing import Literal
 from torch import optim, nn
 import torch
 
-from src.building_blocks.custom_model import ConvBranch2dBinary, ConvBranch2dRegression
-from src.building_blocks.resnet18 import ResNet18Binary, ResNet18Regression
+from src.building_blocks.custom_model import BaseConvBranch2d, BaseConvBranch3d
+from src.building_blocks.resnet18 import BaseResNet18
 from src.building_blocks.compute_metrics import MetricsFactory
 
 
 class LightningWrapper2dCnn(L.LightningModule):
     def __init__(
-        self, input_shape: tuple, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+        self, model: BaseResNet18 | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
     ):
         super().__init__()
         self.task = task
-        self.input_shape = input_shape
 
         # Training building blocks
-        self.model = self._setup_model()
+        self.model = model
         self.loss_func = nn.BCELoss() if task == "classification" else nn.MSELoss()
         self.learning_rate = learning_rate
         self.train_metrics = MetricsFactory.create_metrics(task, "train")
@@ -32,17 +31,6 @@ class LightningWrapper2dCnn(L.LightningModule):
             "on_epoch": True,
             "on_step": False,
         }
-
-    def _setup_model(self):
-        if self.task == "classification":
-            return ConvBranch2dBinary(self.input_shape)
-            # TODO: Find stable lr for ResNet18 before using it
-            # return ResNet18Binary(in_channels=1)
-        elif self.task == "regression":
-            return ConvBranch2dRegression(self.input_shape)
-            # return ResNet18Regression(in_channels=1)
-        else:
-            raise ValueError(f"Task type {self.task} not supported.")
 
     def forward(self, x):
         return self.model(x)
@@ -156,7 +144,7 @@ class LightningWrapper2dCnn(L.LightningModule):
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.3)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-6)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-7)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

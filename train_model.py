@@ -2,23 +2,23 @@ import time
 from pathlib import Path
 
 import lightning as L
-import torch
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
-from lightning.pytorch.tuner import Tuner
+import torch
 
-from src.plots.plot_metrics import plot_all_metrics
+from src.building_blocks.model_factory import ModelFactory
 from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
-from src.data_management.data_set import DataSetConfig
 from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
 from src.building_blocks.metrics_callbacks import (
     ExperimentSetupLogger,
     TrainingProgressTracker,
     ValidationPrintCallback,
 )
+from src.data_management.data_set import DataSetConfig
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
+from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
     AGE_SEX_BALANCED_10K_PATH,
@@ -36,13 +36,16 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    num_gpus = torch.cuda.device_count()
-    batch_size = 64  # should be maximum val_set size / num_gpus?
-    epochs = 2
-    learning_rate = 5e-5
     task = "regression"
+    dim = "2D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
+    model_type = "ConvBranch" # "ResNet18"
+
+    num_gpus = torch.cuda.device_count()
+    batch_size = 64 if dim == "2D" else 1 # should be maximum val_set size / num_gpus?
+    epochs = 300
+    learning_rate = 1e-3
     experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
 
     # Experiment setup
@@ -59,7 +62,7 @@ def train_model():
     ds_config = DataSetConfig(
         feature_map=feature_map,
         target=target,
-        middle_slice=True
+        middle_slice=True if dim == "2D" else False,
     )
     data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
     
@@ -72,13 +75,21 @@ def train_model():
     )
     val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
 
-    # Declare lightning wrapper model
+    # Setup model
+    if model_type == "ConvBranch":
+        model = ModelFactory(task=task, dim=dim).create_conv_branch(input_shape=train_set.data_shape)
+    elif model_type == "ResNet18":
+        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=1)
+    else:
+        raise ValueError("Model type not supported. Check the model_type argument.")
+
+    # Setup lightning wrapper
     lightning_wrapper = LightningWrapper2dCnn(
-        train_set.data_shape, task=task, learning_rate=learning_rate
+        model=model, task=task, learning_rate=learning_rate
     )
 
     # Model name for logging
-    model_name = construct_model_name(lightning_wrapper.model, train_set, task=task, dim="2D")
+    model_name = construct_model_name(lightning_wrapper.model, train_set, task=task, dim=dim)
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
