@@ -1,12 +1,12 @@
 from typing import Literal
 from datetime import datetime
 
-from src.building_blocks.resnet18 import BaseResNet18
+from src.building_blocks.resnet18 import ResNet18Base2d
 from src.building_blocks.custom_model import BaseConvBranch2d
 from src.data_management.data_set import NakoSingleFeatureDataset
 
 
-def construct_model_name(model: BaseConvBranch2d | BaseResNet18, data_set: NakoSingleFeatureDataset, task: Literal["classifcation", "regression"], dim: Literal["2D", "3D"] = "2D") -> str:
+def construct_model_name(model: BaseConvBranch2d | ResNet18Base2d, data_set: NakoSingleFeatureDataset, task: Literal["classifcation", "regression"], dim: Literal["2D", "3D"] = "2D") -> str:
     """Constructs a name for the model based on the data set and dimensionality."""
     date_str = datetime.now().strftime("%y%m%d")
     model_tag = model.__class__.__name__

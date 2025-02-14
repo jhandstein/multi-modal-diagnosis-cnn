@@ -1,9 +1,9 @@
 from torch import nn
 
 
-class BasicBlock(nn.Module):
+class BasicBlock2d(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
-        super(BasicBlock, self).__init__()
+        super(BasicBlock2d, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
@@ -27,19 +27,19 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
         return out
     
-class BaseResNet18(nn.Module):
+class ResNet18Base2d(nn.Module):
     def __init__(self, in_channels=3):
-        super(BaseResNet18, self).__init__()
+        super(ResNet18Base2d, self).__init__()
         self.in_channels = 64
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
-        self.layer1 = self._make_layer(BasicBlock, 64, 2, stride=1)
-        self.layer2 = self._make_layer(BasicBlock, 128, 2, stride=2)
-        self.layer3 = self._make_layer(BasicBlock, 256, 2, stride=2)
-        self.layer4 = self._make_layer(BasicBlock, 512, 2, stride=2)
+        self.layer1 = self._make_layer(BasicBlock2d, 64, 2, stride=1)
+        self.layer2 = self._make_layer(BasicBlock2d, 128, 2, stride=2)
+        self.layer3 = self._make_layer(BasicBlock2d, 256, 2, stride=2)
+        self.layer4 = self._make_layer(BasicBlock2d, 512, 2, stride=2)
         
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
@@ -67,9 +67,9 @@ class BaseResNet18(nn.Module):
         return out
 
 
-class ResNet18Binary(BaseResNet18):
+class ResNet18Binary2d(ResNet18Base2d):
     def __init__(self, in_channels=3):
-        super(ResNet18Binary, self).__init__(in_channels)
+        super(ResNet18Binary2d, self).__init__(in_channels)
         self.fc = nn.Linear(512, 1)
         self.sigmoid = nn.Sigmoid()
 
@@ -79,9 +79,9 @@ class ResNet18Binary(BaseResNet18):
         out = self.sigmoid(out)
         return out.squeeze()
 
-class ResNet18Regression(BaseResNet18):
+class ResNet18Regression2d(ResNet18Base2d):
     def __init__(self, in_channels=3):
-        super(ResNet18Regression, self).__init__(in_channels)
+        super(ResNet18Regression2d, self).__init__(in_channels)
         self.fc = nn.Linear(512, 1)
 
     def forward(self, x):

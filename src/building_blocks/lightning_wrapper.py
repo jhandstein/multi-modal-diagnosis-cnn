@@ -5,13 +5,13 @@ from torch import optim, nn
 import torch
 
 from src.building_blocks.custom_model import BaseConvBranch2d, BaseConvBranch3d
-from src.building_blocks.resnet18 import BaseResNet18
+from src.building_blocks.resnet18 import ResNet18Base2d
 from src.building_blocks.compute_metrics import MetricsFactory
 
 
 class LightningWrapper2dCnn(L.LightningModule):
     def __init__(
-        self, model: BaseResNet18 | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+        self, model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
     ):
         super().__init__()
         self.task = task
