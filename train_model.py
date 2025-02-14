@@ -36,7 +36,7 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification"
+    task = "classification" # "classification" "regression"
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
@@ -115,8 +115,9 @@ def train_model():
     trainer_config = LightningTrainerConfig(
         devices=num_gpus,
         max_epochs=epochs,
+        deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
         # TODO: Check if these are needed
-        precision="32-true" if dim == "2D" else "16-mixed",
+        # precision="32-true" if dim == "2D" else "16-mixed",
         # accumulate_grad_batches=2,  # Accumulate gradients over 2 batches
         # gradient_clip_val=0.5,  # Add gradient clipping
     )

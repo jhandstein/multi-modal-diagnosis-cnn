@@ -67,7 +67,6 @@ class MriImageFile:
 
         else:
             # Add batch and channel dimensions, then interpolate
-            print("Trying to load 3D image and interpolate")
             t = t.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, D, H, W)
             t = F.interpolate(
                 t,

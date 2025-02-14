@@ -129,7 +129,6 @@ class ConvBranch3dBinary(BaseConvBranch3d):
         x = self.forward_convolution(x)
         x = self.fc2(x)
         x = self.sigmoid(x)
-        print(x.shape)
         return x.view(-1)
     
 
@@ -141,5 +140,4 @@ class ConvBranch3dRegression(BaseConvBranch3d):
     def forward(self, x):
         x = self.forward_convolution(x)
         x = self.fc2(x)
-        print(x.shape)
         return x.view(-1)
