@@ -67,5 +67,5 @@ if __name__ == "__main__":
     #     for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
     #         plot_mri_slice(100008, slice_dim=dim, feature_map=fm)
 
-    mri_image_file = MriImageFile(100008, FeatureMapType.GM)
+    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True)
     print(mri_image_file.get_size())

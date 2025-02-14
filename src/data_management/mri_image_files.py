@@ -87,8 +87,9 @@ class MriImageFile:
 
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""
-        img = nib.load(self.file_path)
-        return img.shape
+        # img = nib.load(self.file_path)
+        # return img.shape
+        return self.load_as_tensor().shape[1:]
 
     def print_stats(self):
         """Function to show some basic statistics about the image without loading the whole array"""
