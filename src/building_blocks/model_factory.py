@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from src.building_blocks.custom_model import ConvBranch2dBinary, ConvBranch2dRegression, ConvBranch3dBinary, ConvBranch3dRegression
-from src.building_blocks.resnet18 import ResNet18Binary, ResNet18Regression
+from src.building_blocks.resnet18 import ResNet18Binary2d, ResNet18Regression2d
 
 
 @dataclass
@@ -26,8 +26,8 @@ class ModelFactory:
         
     def create_resnet18(self, in_channels: int):
         if self.task == "classification":
-            return ResNet18Binary(in_channels)
+            return ResNet18Binary2d(in_channels)
         elif self.task == "regression":
-            return ResNet18Regression(in_channels)
+            return ResNet18Regression2d(in_channels)
         else:
             raise ValueError("Model variant not supported. Check the task and dim arguments.")

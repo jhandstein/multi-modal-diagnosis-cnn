@@ -19,6 +19,9 @@ class LightningTrainerConfig():
     strategy: str = "ddp"
     sync_batchnorm: bool = True
     benchmark: bool = False # best algorithm for your hardware, only works with homogenous input sizes
+    precision: str = "32-true"
+    accumulate_grad_batches: int = 1  # Accumulate gradients over 2 batches
+    gradient_clip_val: int | float | None = None  # Add gradient clipping
 
     # Training parameters
     deterministic: bool = True # works together with seed_everything to ensure reproducibility across runs

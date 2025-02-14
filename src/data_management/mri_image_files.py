@@ -1,5 +1,6 @@
 # https://lukas-snoek.com/NI-edu/fMRI-introduction/week_1/python_for_mri.html
 import torch
+import torch.nn.functional as F
 import numpy as np
 import nibabel as nib
 from pathlib import Path
@@ -62,7 +63,18 @@ class MriImageFile:
                 t = t[:, slice_idx]
             else:  # slice_dim == 2
                 t = t[:, :, slice_idx]
-        
+
+        else:
+            # Add batch and channel dimensions, then interpolate
+            print("Trying to load 3D image and interpolate")
+            t = t.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, D, H, W)
+            t = F.interpolate(
+                t,
+                scale_factor=0.2,
+                mode='trilinear',
+                align_corners=False
+            )
+            t = t.squeeze(0).squeeze(0)  # Remove batch and channel dimensions
         # Add a channel dimension
         t = t.unsqueeze(0)
         return t

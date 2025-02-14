@@ -59,10 +59,13 @@ if __name__ == "__main__":
 
     # find_lr()
     # format_metrics_file(Path("/home/julius/repositories/ccn_code/models_test/ConvBranch2dRegression_2D_anat_GM_regression_age/version_0/metrics.csv"))
-    metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics_formatted.csv")
-    plot_all_metrics(metrics_path, task="regression", splits=["train", "val"])
+    # metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics_formatted.csv")
+    # plot_all_metrics(metrics_path, task="regression", splits=["train", "val"])
     # plot_mri_slice(100008, slice_dim=2)
 
     # for dim in [0, 1, 2]:
     #     for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
     #         plot_mri_slice(100008, slice_dim=dim, feature_map=fm)
+
+    mri_image_file = MriImageFile(100008, FeatureMapType.GM)
+    print(mri_image_file.get_size())

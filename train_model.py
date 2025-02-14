@@ -24,7 +24,7 @@ from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     FeatureMapType,
 )
-from src.utils.cuda_utils import check_cuda
+from src.utils.cuda_utils import check_cuda, print_model_size
 from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
@@ -36,15 +36,16 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression"
-    dim = "2D"
+    task = "classification"
+    dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18"
 
-    num_gpus = torch.cuda.device_count()
+    num_gpus = 1 #torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 1 # should be maximum val_set size / num_gpus?
-    epochs = 300
+    print(f"Batch size: {batch_size}")
+    epochs = 3
     learning_rate = 1e-3
     experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
 
@@ -73,7 +74,7 @@ def train_model():
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size, num_gpus=num_gpus
     )
-    val_loader = prepare_standard_data_loaders(val_set, batch_size=2, num_gpus=num_gpus)
+    val_loader = prepare_standard_data_loaders(val_set, batch_size=1, num_gpus=num_gpus)
 
     # Setup model
     if model_type == "ConvBranch":
@@ -82,6 +83,8 @@ def train_model():
         model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=1)
     else:
         raise ValueError("Model type not supported. Check the model_type argument.")
+
+    print_model_size(model)
 
     # Setup lightning wrapper
     lightning_wrapper = LightningWrapper2dCnn(
@@ -112,6 +115,10 @@ def train_model():
     trainer_config = LightningTrainerConfig(
         devices=num_gpus,
         max_epochs=epochs,
+        # TODO: Check if these are needed
+        precision="32-true" if dim == "2D" else "16-mixed",
+        # accumulate_grad_batches=2,  # Accumulate gradients over 2 batches
+        # gradient_clip_val=0.5,  # Add gradient clipping
     )
     trainer = L.Trainer(**trainer_config.dict(), callbacks=[print_callback, setup_logger, progress_logger], logger=logger)
 
