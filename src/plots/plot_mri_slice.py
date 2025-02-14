@@ -11,11 +11,7 @@ def plot_mri_slice(subject_id: int, feature_map = FeatureMapType.GM, slice_dim: 
     Plots an MRI slice as a 2D image
     """
     
-
-    mri_slice = MriImageFile(subject_id, feature_map).load_as_tensor(
-        middle_slice=True,
-        slice_dim=slice_dim
-    ).squeeze()
+    mri_slice = MriImageFile(subject_id, feature_map).load_as_tensor(slice_dim=slice_dim).squeeze()
     mri_slice = mri_slice.numpy()
 
     plt.imshow(mri_slice, cmap="gray")

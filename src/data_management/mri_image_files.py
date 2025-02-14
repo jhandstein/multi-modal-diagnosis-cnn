@@ -18,10 +18,11 @@ class MriImageFile:
     Class to handle the loading of image / feature map files from the NAKO dataset
     """
 
-    def __init__(self, subject_id: int, feature_map: FeatureMapType):
+    def __init__(self, subject_id: int, feature_map: FeatureMapType, middle_slice: bool = True):
         self.subject_id = subject_id
         self.token = f"sub-{subject_id}"
         self.feature_map = feature_map
+        self.middle_slice = middle_slice
 
     @property
     def file_path(self) -> Path:
@@ -36,7 +37,7 @@ class MriImageFile:
         else:
             raise ValueError("Invalid scan type")
 
-    def load_as_tensor(self, middle_slice: bool = True, slice_dim: int = 0) -> torch.tensor:
+    def load_as_tensor(self, slice_dim: int = 0) -> torch.tensor:
         """Loads the feature map file as a torch tensor
         
         Args:
@@ -51,7 +52,7 @@ class MriImageFile:
         t = torch.from_numpy(self.load_array()).float()
         
         # Extract the middle slice from the specified dimension
-        if middle_slice:
+        if self.middle_slice:
             if slice_dim not in [0, 1, 2]:
                 raise ValueError("slice_dim must be 0, 1, or 2")
             

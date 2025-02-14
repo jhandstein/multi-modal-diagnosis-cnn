@@ -10,3 +10,6 @@ def raw_and_map_sizes(subject_id: int):
     fm2 = MriImageFile(subject_id, FeatureMapType.GM)
     print(fm2.file_path)
     print(fm2.print_stats())
+    fm3 = MriImageFile(subject_id, FeatureMapType.REHO)
+    print(fm3.file_path)
+    print(fm3.print_stats())

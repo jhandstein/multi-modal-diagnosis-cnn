@@ -27,7 +27,7 @@ class NakoSingleFeatureDataset(Dataset):
         self.middle_slice = ds_config.middle_slice
 
         # Get shape of one sample (without channel dimension)
-        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_map).get_size()
+        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_map, self.middle_slice).get_size()
         if self.middle_slice:
             self.data_shape = (self.data_shape[1:])
 
@@ -37,8 +37,8 @@ class NakoSingleFeatureDataset(Dataset):
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
         # Load the feature map as a tensor
-        image_file = MriImageFile(subject_id, self.feature_map)
-        feature_tensor = image_file.load_as_tensor(middle_slice=self.middle_slice)
+        image_file = MriImageFile(subject_id, self.feature_map, self.middle_slice)
+        feature_tensor = image_file.load_as_tensor()
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return feature_tensor, label
