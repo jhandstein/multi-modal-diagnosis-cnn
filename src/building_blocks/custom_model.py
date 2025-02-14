@@ -59,7 +59,7 @@ class ConvBranch2dBinary(BaseConvBranch2d):
         x = self.forward_convolution(x)
         x = self.fc2(x)
         x = self.sigmoid(x)
-        return x.squeeze()
+        return x.view(-1)
 
 class ConvBranch2dRegression(BaseConvBranch2d):
     def __init__(self, input_shape: tuple):
@@ -69,7 +69,7 @@ class ConvBranch2dRegression(BaseConvBranch2d):
     def forward(self, x):
         x = self.forward_convolution(x)
         x = self.fc2(x)
-        return x.squeeze()
+        return x.view(-1)
     
 
 class BaseConvBranch3d(nn.Module):
@@ -129,7 +129,8 @@ class ConvBranch3dBinary(BaseConvBranch3d):
         x = self.forward_convolution(x)
         x = self.fc2(x)
         x = self.sigmoid(x)
-        return x.squeeze()
+        print(x.shape)
+        return x.view(-1)
     
 
 class ConvBranch3dRegression(BaseConvBranch3d):
@@ -140,4 +141,5 @@ class ConvBranch3dRegression(BaseConvBranch3d):
     def forward(self, x):
         x = self.forward_convolution(x)
         x = self.fc2(x)
-        return x.squeeze()
+        print(x.shape)
+        return x.view(-1)

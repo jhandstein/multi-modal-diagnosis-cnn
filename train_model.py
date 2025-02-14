@@ -36,8 +36,8 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification"
-    dim = "3D"
+    task = "regression"  # "classification"
+    dim = "2D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18"
