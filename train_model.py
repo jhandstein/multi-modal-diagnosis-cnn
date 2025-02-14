@@ -36,11 +36,11 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression"
-    dim = "2D"
+    task = "classification"
+    dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    model_type = "ConvBranch" # "ResNet18"
+    model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
     num_gpus = 1 #torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 1 # should be maximum val_set size / num_gpus?

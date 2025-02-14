@@ -77,7 +77,7 @@ class ResNet18Binary2d(ResNet18Base2d):
         out = self.forward_convolution(x)
         out = self.fc(out)
         out = self.sigmoid(out)
-        return out.squeeze()
+        return out.view(-1)
 
 class ResNet18Regression2d(ResNet18Base2d):
     def __init__(self, in_channels=3):
@@ -87,4 +87,4 @@ class ResNet18Regression2d(ResNet18Base2d):
     def forward(self, x):
         out = self.forward_convolution(x)
         out = self.fc(out)
-        return out.squeeze()
+        return out.view(-1)
