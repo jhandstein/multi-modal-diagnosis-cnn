@@ -9,7 +9,7 @@ from src.building_blocks.resnet18 import ResNet18Base2d
 from src.building_blocks.compute_metrics import MetricsFactory
 
 
-class LightningWrapper2dCnn(L.LightningModule):
+class LightningWrapperCnn(L.LightningModule):
     def __init__(
         self, model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
     ):
@@ -39,23 +39,13 @@ class LightningWrapper2dCnn(L.LightningModule):
         # Unpacking and forward pass
         x, y = batch
         y_hat = self.model(x)
-
-        # TODO: Remove debug prints
-        # Add these debug prints
-        # print(f"y_hat range: {y_hat.min().item():.3f} to {y_hat.max().item():.3f}")
-        # print(f"y unique values: {y.unique().tolist()}")
-
-        # print(f"Label distribution: {y.mean().item():.3f}")  # Should be around 0.5 for balanced data
-
+        
         # Validate labels for binary classification
         if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
 
         # Compute loss
         loss = self.loss_func(y_hat, y)
-
-        # Debugging
-        # print(f"Batch loss: {loss.item():.3f}")
 
         # Store predictions for later metric computation
         self.train_step_outputs.append(

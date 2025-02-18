@@ -8,9 +8,10 @@ import torch
 
 from src.building_blocks.model_factory import ModelFactory
 from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
-from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
+from src.building_blocks.lightning_wrapper import LightningWrapperCnn
 from src.building_blocks.metrics_callbacks import (
     ExperimentSetupLogger,
+    ExperimentStartCallback,
     TrainingProgressTracker,
     ValidationPrintCallback,
 )
@@ -24,7 +25,7 @@ from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     FeatureMapType,
 )
-from src.utils.cuda_utils import check_cuda, print_model_size
+from src.utils.cuda_utils import check_cuda, calculate_model_size
 from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
@@ -37,27 +38,37 @@ def train_model():
 
     # Set parameters for training
     task = "classification" # "classification" "regression"
-    dim = "3D"
+    dim = "2D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
-    num_gpus = 1 #torch.cuda.device_count()
-    batch_size = 64 if dim == "2D" else 1 # should be maximum val_set size / num_gpus?
-    print(f"Batch size: {batch_size}")
-    epochs = 3
-    learning_rate = 1e-3
+    num_gpus = torch.cuda.device_count()
+    batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
+    epochs = 100
+    learning_rate = 5e-4
     experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
+
+    print_collection_dict = {
+        "Task": task,
+        "Epochs": epochs,
+        "Batch Size": batch_size,
+        "Num GPUs": num_gpus,
+        "Learning Rate": learning_rate,
+        "Experiment Notes": experiment_notes,
+    }
 
     # Experiment setup
     if epochs > 20:
         log_dir = Path("models")
         data_split_path = AGE_SEX_BALANCED_10K_PATH
-        print("Training on 10k data set.")
+        # print("Training on 10k data set.")
+        print_collection_dict["Data Set Size"] = "10k"
     else:
         log_dir = Path("models_test")
         data_split_path = AGE_SEX_BALANCED_1K_PATH
-        print("Training on 1k data set.")
+        # print("Training on 1k data set.")
+        print_collection_dict["Data Set Size"] = "1k"
 
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
@@ -74,7 +85,7 @@ def train_model():
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size, num_gpus=num_gpus
     )
-    val_loader = prepare_standard_data_loaders(val_set, batch_size=1, num_gpus=num_gpus)
+    val_loader = prepare_standard_data_loaders(val_set, batch_size=8, num_gpus=num_gpus)
 
     # Setup model
     if model_type == "ConvBranch":
@@ -84,10 +95,10 @@ def train_model():
     else:
         raise ValueError("Model type not supported. Check the model_type argument.")
 
-    print_model_size(model)
+    print_collection_dict["Model Size"] = calculate_model_size(model)
 
     # Setup lightning wrapper
-    lightning_wrapper = LightningWrapper2dCnn(
+    lightning_wrapper = LightningWrapperCnn(
         model=model, task=task, learning_rate=learning_rate
     )
 
@@ -96,6 +107,7 @@ def train_model():
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
+    start_info_callback = ExperimentStartCallback(logger=logger, logging_dict=print_collection_dict)
     print_callback = ValidationPrintCallback(logger=logger)
 
     setup_logger = ExperimentSetupLogger(
@@ -121,7 +133,7 @@ def train_model():
         # accumulate_grad_batches=2,  # Accumulate gradients over 2 batches
         # gradient_clip_val=0.5,  # Add gradient clipping
     )
-    trainer = L.Trainer(**trainer_config.dict(), callbacks=[print_callback, setup_logger, progress_logger], logger=logger)
+    trainer = L.Trainer(**trainer_config.dict(), callbacks=[start_info_callback, print_callback, setup_logger, progress_logger], logger=logger)
 
     trainer.fit(
         model=lightning_wrapper,
@@ -143,7 +155,7 @@ def train_model():
         checkpoint_path = Path(
             "models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt"
         )
-        lightning_model = LightningWrapper2dCnn.load_from_checkpoint(
+        lightning_model = LightningWrapperCnn.load_from_checkpoint(
             checkpoint_path
         )
 

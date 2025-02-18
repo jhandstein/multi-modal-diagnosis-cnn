@@ -9,7 +9,7 @@ from torchvision.models import resnet18
 from src.data_management.mri_image_files import MriImageFile
 from src.plots.plot_mri_slice import plot_mri_slice
 from src.plots.plot_metrics import plot_all_metrics
-from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
+from src.building_blocks.lightning_wrapper import LightningWrapperCnn
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.plot_age_range import plot_age_range
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
 
-    # find_lr()
+    find_lr()
     # format_metrics_file(Path("/home/julius/repositories/ccn_code/models_test/ConvBranch2dRegression_2D_anat_GM_regression_age/version_0/metrics.csv"))
     # metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics_formatted.csv")
     # plot_all_metrics(metrics_path, task="regression", splits=["train", "val"])
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     #     for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
     #         plot_mri_slice(100008, slice_dim=dim, feature_map=fm)
 
-    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True)
-    print(mri_image_file.get_size())
+    # mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True)
+    # print(mri_image_file.get_size())

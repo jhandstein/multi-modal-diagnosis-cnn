@@ -70,7 +70,7 @@ class MriImageFile:
             t = t.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, D, H, W)
             t = F.interpolate(
                 t,
-                scale_factor=0.2,
+                scale_factor=0.5,
                 mode='trilinear',
                 align_corners=False
             )

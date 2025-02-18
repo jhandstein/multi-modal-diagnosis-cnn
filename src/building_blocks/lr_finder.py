@@ -3,7 +3,8 @@ import lightning as L
 
 from lightning.pytorch.tuner import Tuner
 
-from src.building_blocks.lightning_wrapper import LightningWrapper2dCnn
+from src.building_blocks.model_factory import ModelFactory
+from src.building_blocks.lightning_wrapper import LightningWrapperCnn
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set import DataSetConfig
@@ -15,17 +16,19 @@ def estimate_initial_learning_rate():
     """
     Implements learning rate finder using PyTorch Lightning
     """
-    batch_size = 64
+    batch_size = 8 #64
     num_gpus = 8
     task = "classification"
+    dim = "3D"
     target = "sex" if task == "classification" else "age"
+    model_type = "ConvBranch"
 
     data_split_path = AGE_SEX_BALANCED_10K_PATH
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
         feature_map=FeatureMapType.GM,
         target=target,
-        middle_slice=True
+        middle_slice=False
     )
     data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
     
@@ -40,9 +43,17 @@ def estimate_initial_learning_rate():
         val_set, batch_size=batch_size, num_gpus=num_gpus
     )
 
+    # Setup model
+    if model_type == "ConvBranch":
+        model = ModelFactory(task=task, dim=dim).create_conv_branch(input_shape=train_set.data_shape)
+    elif model_type == "ResNet18":
+        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=1)
+    else:
+        raise ValueError("Model type not supported. Check the model_type argument.")
+
     # Declare lightning wrapper model
-    lightning_wrapper = LightningWrapper2dCnn(
-        train_set.data_shape, task=task, learning_rate=1e-3
+    lightning_wrapper = LightningWrapperCnn(
+        model=model, task=task, learning_rate=1e-3
     )
 
     # Create trainer with auto learning rate finder

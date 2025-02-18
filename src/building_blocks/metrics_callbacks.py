@@ -1,11 +1,23 @@
 from lightning.pytorch.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_only
-import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import json
 
 from src.data_management.data_set import NakoSingleFeatureDataset
+
+class ExperimentStartCallback(Callback):
+    def __init__(self, logger=None, logging_dict={}):
+        self.logger = logger
+        self.logging_dict = logging_dict
+
+    @rank_zero_only
+    def on_train_start(self, trainer, pl_module):
+        print("")
+        print("Training started with the following parameters:")
+        for key, value in self.logging_dict.items():
+            print(f"{key}: {value}")
+        print("")
 
 
 class ValidationPrintCallback(Callback):
