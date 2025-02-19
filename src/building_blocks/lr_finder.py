@@ -37,11 +37,11 @@ def estimate_initial_learning_rate():
     ).create_data_sets()
 
     train_loader = prepare_standard_data_loaders(
-        train_set, batch_size=batch_size, num_gpus=num_gpus
+        train_set, batch_size=batch_size
     )
     val_loader = prepare_standard_data_loaders(
-        val_set, batch_size=batch_size, num_gpus=num_gpus
-    )
+        val_set, batch_size=batch_size
+        )
 
     # Setup model
     if model_type == "ConvBranch":

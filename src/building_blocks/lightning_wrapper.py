@@ -120,7 +120,6 @@ class LightningWrapperCnn(L.LightningModule):
 
         # Clear saved outputs
         self.validation_step_outputs.clear()
-        pass
 
     def test_step(self, batch):
         # test_step defines the test loop.

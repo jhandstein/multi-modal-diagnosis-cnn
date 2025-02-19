@@ -45,7 +45,7 @@ def train_model():
 
     num_gpus = torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
-    epochs = 100
+    epochs = 11
     learning_rate = 5e-4
     experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
 
@@ -59,7 +59,7 @@ def train_model():
     }
 
     # Experiment setup
-    if epochs > 20:
+    if epochs > 10:
         log_dir = Path("models")
         data_split_path = AGE_SEX_BALANCED_10K_PATH
         # print("Training on 10k data set.")
@@ -83,9 +83,9 @@ def train_model():
     ).create_data_sets()
 
     train_loader = prepare_standard_data_loaders(
-        train_set, batch_size=batch_size, num_gpus=num_gpus
+        train_set, batch_size=batch_size
     )
-    val_loader = prepare_standard_data_loaders(val_set, batch_size=8, num_gpus=num_gpus)
+    val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
 
     # Setup model
     if model_type == "ConvBranch":
