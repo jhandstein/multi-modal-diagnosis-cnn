@@ -6,7 +6,7 @@ import torch
 
 from src.building_blocks.custom_model import BaseConvBranch2d, BaseConvBranch3d
 from src.building_blocks.resnet18 import ResNet18Base2d
-from src.building_blocks.compute_metrics import MetricsFactory
+from src.building_blocks.torchmetrics import MetricsFactory
 
 
 class LightningWrapperCnn(L.LightningModule):
@@ -15,111 +15,96 @@ class LightningWrapperCnn(L.LightningModule):
     ):
         super().__init__()
         self.task = task
+        self.save_hyperparameters(ignore=['model'])
 
         # Training building blocks
         self.model = model
         self.loss_func = nn.BCELoss() if task == "classification" else nn.MSELoss()
         self.learning_rate = learning_rate
+
+        # Initialize training and validation metrics
         self.train_metrics = MetricsFactory.create_metrics(task, "train")
         self.val_metrics = MetricsFactory.create_metrics(task, "val")
 
+
         # Training set up
-        self.train_step_outputs = []
-        self.validation_step_outputs = []
         self.logging_params = {
             "sync_dist": True,
             "on_epoch": True,
             "on_step": False,
         }
 
+    def setup(self, stage: str) -> None:
+        """Called on every device."""
+        # Move metrics to the correct device
+        for metric in self.train_metrics.metrics.values():
+            metric.to(self.device)
+        for metric in self.val_metrics.metrics.values():
+            metric.to(self.device)
+
     def forward(self, x):
         return self.model(x)
 
-    def training_step(self, batch):
-        # Unpacking and forward pass
+    def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model(x)
         
-        # Validate labels for binary classification
         if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
 
-        # Compute loss
         loss = self.loss_func(y_hat, y)
 
-        # Store predictions for later metric computation
-        self.train_step_outputs.append(
-            {
-                "y": y,
-                "y_hat": y_hat,
-            }
-        )
+        # Debug info for metrics
+        if batch_idx == 0:  # First batch of epoch
+            self._prediction_count = 0
+            self._total_predictions = []
+            self._total_labels = []
+        
+        # Accumulate predictions and labels
+        self._prediction_count += len(y)
+        self._total_predictions.append(y_hat.detach().cpu())
+        self._total_labels.append(y.detach().cpu())        
+        
+        # Update metrics on each step
+        metrics_dict = {
+            "train_loss": loss,
+            **self.train_metrics(y, y_hat)
+        }
 
+        # Print debug info every N batches
+        # TODO: Make this actually print
+        if batch_idx % 2 == 0:
+            print(f"\nBatch {batch_idx}:")
+            print(f"Processed predictions so far: {self._prediction_count}")
+            print(f"Current batch metrics: {metrics_dict}")
+            
+            # Verify metrics manually for classification
+            if self.task == "classification":
+                all_preds = torch.cat(self._total_predictions)
+                all_labels = torch.cat(self._total_labels)
+                print(f"Total predictions shape: {all_preds.shape}")
+                print(f"Prediction distribution: {(all_preds > 0.5).float().mean():.3f}")
+                print(f"Label distribution: {all_labels.float().mean():.3f}")
+    
+        self.log_dict(metrics_dict, **self.logging_params)
+        
         return loss
 
-    def on_train_epoch_end(self):
-        # Gather predictions from all GPUs
-        y = torch.cat([batch_out["y"] for batch_out in self.train_step_outputs])
-        y_hat = torch.cat([batch_out["y_hat"] for batch_out in self.train_step_outputs])
-
-        # Gather across GPUs
-        y = self.all_gather(y)
-        y_hat = self.all_gather(y_hat)
-
-        # Reshape if needed (all_gather adds new dimension)
-        y, y_hat = self._flatten_predictions(y, y_hat)
-
-        # Compute metrics for whole epoch
-        epoch_loss = self.loss_func(y_hat, y)
-        metrics_dict = {
-            "train_loss": epoch_loss,
-            **self.train_metrics(y, y_hat),
-        }
-        self.log_dict(metrics_dict, **self.logging_params)
-
-        # Log current learning rate
-        current_lr = self.optimizers().param_groups[0]['lr']
-        self.log("learning_rate", current_lr, **self.logging_params)
-
-        # Clear saved outputs
-        self.train_step_outputs.clear()
-
-    def validation_step(self, batch):
+    def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model(x)
         loss = self.loss_func(y_hat, y)
 
-        # Store predictions for later metric computation
-        self.validation_step_outputs.append(
-            {
-                "y": y,
-                "y_hat": y_hat,
-            }
-        )
-
-        return loss
-
-    def on_validation_epoch_end(self):
-        # Gather predictions from all GPUs
-        y = torch.cat([x["y"] for x in self.validation_step_outputs])
-        y_hat = torch.cat([x["y_hat"] for x in self.validation_step_outputs])
-
-        # Gather across GPUs
-        y = self.all_gather(y)
-        y_hat = self.all_gather(y_hat)
-
-        # Reshape if needed (all_gather adds new dimension)
-        y, y_hat = self._flatten_predictions(y, y_hat)
-
-        # Compute metrics for whole epoch
+        # Update metrics on each step
         metrics_dict = {
-            "val_loss": self.loss_func(y_hat, y),
-            **self.val_metrics(y, y_hat),
+            "val_loss": loss,
+            **self.val_metrics(y, y_hat)
         }
         self.log_dict(metrics_dict, **self.logging_params)
 
-        # Clear saved outputs
-        self.validation_step_outputs.clear()
+        # TODO: Add back learning rate
+        
+        return loss
 
     def test_step(self, batch):
         # test_step defines the test loop.
@@ -153,12 +138,3 @@ class LightningWrapperCnn(L.LightningModule):
         """Debugging function to check the shapes of the predictions."""
         print("label_shape", y.shape)
         print("prediction_shape", y_hat.shape)
-
-    def _flatten_predictions(self, y, y_hat):
-        """Flatten the tensors if they have more than one dimension."""
-        if len(y.shape) > 1:
-            y = y.reshape(-1)
-            y_hat = y_hat.reshape(-1)
-
-        # self._debug_prediction_shapes(y, y_hat)
-        return y, y_hat

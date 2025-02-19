@@ -47,7 +47,7 @@ def train_model():
     batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
     epochs = 11
     learning_rate = 5e-4
-    experiment_notes = {"notes": f"Automatic learning rate not actually used due to model instability. New lr schedualer (plateau) implemented."}
+    experiment_notes = {"notes": f"Testing torch metrics working."}
 
     print_collection_dict = {
         "Task": task,
@@ -128,10 +128,6 @@ def train_model():
         devices=num_gpus,
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
-        # TODO: Check if these are needed
-        # precision="32-true" if dim == "2D" else "16-mixed",
-        # accumulate_grad_batches=2,  # Accumulate gradients over 2 batches
-        # gradient_clip_val=0.5,  # Add gradient clipping
     )
     trainer = L.Trainer(**trainer_config.dict(), callbacks=[start_info_callback, print_callback, setup_logger, progress_logger], logger=logger)
 
