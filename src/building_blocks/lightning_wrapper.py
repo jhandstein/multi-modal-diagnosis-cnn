@@ -34,6 +34,17 @@ class LightningWrapperCnn(L.LightningModule):
             "on_step": False,
         }
 
+        self.epoch_samples = {"train": 0, "val": 0}
+        self.total_samples = {"train": 0, "val": 0}
+
+    # TODO: Remove later
+    def on_train_epoch_start(self):
+        self.epoch_samples["train"] = 0
+
+    # TODO: Remove later
+    def on_validation_epoch_start(self):
+        self.epoch_samples["val"] = 0
+
     def setup(self, stage: str) -> None:
         """Called on every device."""
         # Move metrics to the correct device
@@ -44,6 +55,22 @@ class LightningWrapperCnn(L.LightningModule):
 
     def forward(self, x):
         return self.model(x)
+    
+    # TODO: Remove later
+    def on_train_end(self):
+        super().on_train_end()
+        print(f"\nGPU {self.device} Statistics:")
+        print(f"Training samples per epoch: {self.epoch_samples['train']}")
+        print(f"Validation samples per epoch: {self.epoch_samples['val']}")
+        
+        if self.trainer is not None:
+            total_train = self.trainer.world_size * self.epoch_samples['train']
+            total_val = self.trainer.world_size * self.epoch_samples['val']
+            print(f"\nAcross all {self.trainer.world_size} GPUs:")
+            print(f"Total training samples per epoch: {total_train}")
+            print(f"Total validation samples per epoch: {total_val}")
+            print(f"Expected train set size: 7680")
+            print(f"Expected val set size: 1280")
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -54,39 +81,19 @@ class LightningWrapperCnn(L.LightningModule):
 
         loss = self.loss_func(y_hat, y)
 
-        # Debug info for metrics
-        if batch_idx == 0:  # First batch of epoch
-            self._prediction_count = 0
-            self._total_predictions = []
-            self._total_labels = []
-        
-        # Accumulate predictions and labels
-        self._prediction_count += len(y)
-        self._total_predictions.append(y_hat.detach().cpu())
-        self._total_labels.append(y.detach().cpu())        
-        
-        # Update metrics on each step
         metrics_dict = {
             "train_loss": loss,
             **self.train_metrics(y, y_hat)
         }
-
-        # Print debug info every N batches
-        # TODO: Make this actually print
-        if batch_idx % 2 == 0:
-            print(f"\nBatch {batch_idx}:")
-            print(f"Processed predictions so far: {self._prediction_count}")
-            print(f"Current batch metrics: {metrics_dict}")
-            
-            # Verify metrics manually for classification
-            if self.task == "classification":
-                all_preds = torch.cat(self._total_predictions)
-                all_labels = torch.cat(self._total_labels)
-                print(f"Total predictions shape: {all_preds.shape}")
-                print(f"Prediction distribution: {(all_preds > 0.5).float().mean():.3f}")
-                print(f"Label distribution: {all_labels.float().mean():.3f}")
     
         self.log_dict(metrics_dict, **self.logging_params)
+
+        # Log current learning rate
+        current_lr = self.optimizers().param_groups[0]['lr']
+        self.log("learning_rate", current_lr, **self.logging_params)
+
+        # TODO: Remove later
+        self.epoch_samples["train"] += len(y)
         
         return loss
 
@@ -102,7 +109,8 @@ class LightningWrapperCnn(L.LightningModule):
         }
         self.log_dict(metrics_dict, **self.logging_params)
 
-        # TODO: Add back learning rate
+        # TODO: Remove later
+        self.epoch_samples["val"] += len(y)
         
         return loss
 

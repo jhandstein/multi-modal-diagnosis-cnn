@@ -38,15 +38,15 @@ def train_model():
 
     # Set parameters for training
     task = "classification" # "classification" "regression"
-    dim = "2D"
+    dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
     num_gpus = torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
-    epochs = 11
-    learning_rate = 5e-4
+    epochs = 100
+    learning_rate = 1e-4
     experiment_notes = {"notes": f"Testing torch metrics working."}
 
     print_collection_dict = {
@@ -59,7 +59,7 @@ def train_model():
     }
 
     # Experiment setup
-    if epochs > 10:
+    if epochs > 20:
         log_dir = Path("models")
         data_split_path = AGE_SEX_BALANCED_10K_PATH
         # print("Training on 10k data set.")
