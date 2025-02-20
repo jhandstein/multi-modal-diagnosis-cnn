@@ -34,6 +34,7 @@ class LightningWrapperCnn(L.LightningModule):
             "on_step": False,
         }
 
+        # TODO: Remove later
         self.epoch_samples = {"train": 0, "val": 0}
         self.total_samples = {"train": 0, "val": 0}
 
@@ -76,16 +77,17 @@ class LightningWrapperCnn(L.LightningModule):
         x, y = batch
         y_hat = self.model(x)
         
+        # Validate labels for binary classification
         if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
 
         loss = self.loss_func(y_hat, y)
 
+        # Log all metrics
         metrics_dict = {
             "train_loss": loss,
             **self.train_metrics(y, y_hat)
         }
-    
         self.log_dict(metrics_dict, **self.logging_params)
 
         # Log current learning rate
@@ -102,7 +104,7 @@ class LightningWrapperCnn(L.LightningModule):
         y_hat = self.model(x)
         loss = self.loss_func(y_hat, y)
 
-        # Update metrics on each step
+        # Log all metrics
         metrics_dict = {
             "val_loss": loss,
             **self.val_metrics(y, y_hat)
