@@ -18,7 +18,7 @@ def estimate_initial_learning_rate():
     """
     batch_size = 8 #64
     num_gpus = 8
-    task = "classification"
+    task = "regression"
     dim = "3D"
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch"
