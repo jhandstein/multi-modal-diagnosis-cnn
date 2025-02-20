@@ -21,7 +21,6 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
 from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
-    AGE_SEX_BALANCED_1K_PATH,
     AGE_SEX_BALANCED_10K_PATH,
     FeatureMapType,
 )
@@ -37,7 +36,7 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
+    task = "regression" # "classification" "regression"
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
@@ -46,8 +45,8 @@ def train_model():
     num_gpus = torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
     epochs = 100
-    learning_rate = 1e-4
-    experiment_notes = {"notes": f"Testing torch metrics working."}
+    learning_rate = 1e-2
+    experiment_notes = {"notes": f"First run of 3D regression. 'High' learning rate. Scaling of 0.5 for image inputs."}
 
     print_collection_dict = {
         "Task": task,
@@ -59,16 +58,10 @@ def train_model():
     }
 
     # Experiment setup
-    if epochs > 20:
+    if epochs > 5:
         log_dir = Path("models")
-        data_split_path = AGE_SEX_BALANCED_10K_PATH
-        # print("Training on 10k data set.")
-        print_collection_dict["Data Set Size"] = "10k"
     else:
         log_dir = Path("models_test")
-        data_split_path = AGE_SEX_BALANCED_1K_PATH
-        # print("Training on 1k data set.")
-        print_collection_dict["Data Set Size"] = "1k"
 
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
@@ -76,7 +69,7 @@ def train_model():
         target=target,
         middle_slice=True if dim == "2D" else False,
     )
-    data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
+    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
     
     train_set, val_set, test_set = DataSetFactory(
         data_split["train"], data_split["val"], data_split["test"], ds_config
