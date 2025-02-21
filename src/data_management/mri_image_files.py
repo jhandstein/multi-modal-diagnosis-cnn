@@ -37,7 +37,7 @@ class MriImageFile:
         else:
             raise ValueError("Invalid scan type")
 
-    def load_as_tensor(self, slice_dim: int = 0) -> torch.tensor:
+    def load_as_tensor(self, slice_dim: int = 0) -> torch.Tensor:
         """Loads the feature map file as a torch tensor
         
         Args:
@@ -86,9 +86,12 @@ class MriImageFile:
 
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""
-        # img = nib.load(self.file_path)
-        # return img.shape
         return self.load_as_tensor().shape[1:]
+    
+    def _num_params(self) -> str:
+        num_params = self.load_as_tensor().numel()
+        print(f"Number of parameters: {num_params}")
+        return num_params
 
     def print_stats(self):
         """Function to show some basic statistics about the image without loading the whole array"""

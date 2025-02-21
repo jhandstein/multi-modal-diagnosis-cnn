@@ -118,6 +118,11 @@ def plot_main_metrics(
         ax2.set_ylim(0, 1)
     else:
         ax2.set_ylim(-1, 1)
+
+    # Limit loss axis to a reasonable range
+    if task == "regression":
+        ax1.set_ylim(0, 1000)
+
     
     # Save plot
     plt.tight_layout()

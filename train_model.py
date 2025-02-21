@@ -36,7 +36,7 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
+    task = "classification" # "classification" "regression"
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
@@ -44,8 +44,8 @@ def train_model():
 
     num_gpus = torch.cuda.device_count()
     batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
-    epochs = 100
-    learning_rate = 1e-2
+    epochs = 200
+    learning_rate = 5e-2
     experiment_notes = {"notes": f"First run of 3D regression. 'High' learning rate. Scaling of 0.5 for image inputs."}
 
     print_collection_dict = {

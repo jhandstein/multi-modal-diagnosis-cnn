@@ -1,9 +1,6 @@
 from time import time
 
 from pathlib import Path
-import matplotlib.pyplot as plt
-import torch
-import torch.nn as nn
 from torchvision.models import resnet18
 
 from src.data_management.mri_image_files import MriImageFile
@@ -58,11 +55,11 @@ def plot_metrics_when_failed_during_training():
     task = "regression"
 
     # Format metrics file
-    metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics.csv")
-    format_metrics_file(metrics_path)
+    # metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics.csv")
+    # format_metrics_file(metrics_path)
 
     # Plot metrics
-    metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics_formatted.csv")
+    metrics_path = Path("/home/julius/repositories/ccn_code/models/250221_ConvBranch3dRegression_3D_anat_GM_regression_age/version_1/metrics_formatted.csv")
     plot_all_metrics(metrics_path, task=task, splits=["train", "val"])
 
 
@@ -76,7 +73,9 @@ if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
 
-    find_lr()
+    # find_lr()
+    # plot_metrics_when_failed_during_training()
 
-    # mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True)
-    # print(mri_image_file.get_size())
+    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=False)
+    print(mri_image_file.get_size())
+    mri_image_file._num_params()
