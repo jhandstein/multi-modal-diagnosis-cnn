@@ -7,33 +7,33 @@ from src.building_blocks.resnet18 import ResNet18Binary2d, ResNet18Regression2d,
 
 @dataclass
 class ModelFactory:
+    """Factory class for creating models based on the task and dimensionality."""
+
     task: Literal["classification", "regression"]
     dim: Literal["2D", "3D"]
 
+    _conv_branch_models = {
+        ("2D", "classification"): ConvBranch2dBinary,
+        ("2D", "regression"): ConvBranch2dRegression,
+        ("3D", "classification"): ConvBranch3dBinary,
+        ("3D", "regression"): ConvBranch3dRegression,
+    }
+
+    _resnet_models = {
+        ("2D", "classification"): ResNet18Binary2d,
+        ("2D", "regression"): ResNet18Regression2d,
+        ("3D", "classification"): ResNet18Binary3d,
+        ("3D", "regression"): ResNet18Regression3d,
+    }
+
     def create_conv_branch(self, input_shape: tuple):
-        if self.dim == "2D":
-            if self.task == "classification":
-                return ConvBranch2dBinary(input_shape)
-            elif self.task == "regression":
-                return ConvBranch2dRegression(input_shape)
-        elif self.dim == "3D":
-            if self.task == "classification":
-                return ConvBranch3dBinary(input_shape)
-            elif self.task == "regression":
-                return ConvBranch3dRegression(input_shape)
-        else:
+        model_class = self._conv_branch_models.get((self.dim, self.task))
+        if not model_class:
             raise ValueError("Model variant not supported. Check the task and dim arguments.")
-        
+        return model_class(input_shape)
+
     def create_resnet18(self, in_channels: int):
-        if self.dim == "2D":
-            if self.task == "classification":
-                return ResNet18Binary2d(in_channels)
-            elif self.task == "regression":
-                return ResNet18Regression2d(in_channels)
-        elif self.dim == "3D":
-            if self.task == "classification":
-                return ResNet18Binary3d(in_channels)
-            elif self.task == "regression":
-                return ResNet18Regression3d(in_channels)
-        else:
+        model_class = self._resnet_models.get((self.dim, self.task))
+        if not model_class:
             raise ValueError("Model variant not supported. Check the task and dim arguments.")
+        return model_class(in_channels)
