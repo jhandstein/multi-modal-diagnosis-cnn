@@ -36,17 +36,17 @@ def train_model():
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
+    task = "regression" # "classification" "regression"
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    model_type = "ConvBranch" # "ResNet18" "ConvBranch"
+    model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
     num_gpus = torch.cuda.device_count()
-    batch_size = 64 if dim == "2D" else 8 # should be maximum val_set size / num_gpus?
-    epochs = 200
-    learning_rate = 5e-2
-    experiment_notes = {"notes": f"First run of 3D regression. 'High' learning rate. Scaling of 0.5 for image inputs."}
+    batch_size = 64 if dim == "2D" else 2 # should be maximum val_set size / num_gpus?
+    epochs = 100
+    learning_rate = 1e-3
+    experiment_notes = {"notes": f"ResNet183D with accumulate batches=8, batch_size=2. Running classification with Adam default LR. Scaling of 0.5 for image inputs."}
 
     print_collection_dict = {
         "Task": task,
@@ -96,7 +96,7 @@ def train_model():
     )
 
     # Model name for logging
-    model_name = construct_model_name(lightning_wrapper.model, train_set, task=task, dim=dim)
+    model_name = construct_model_name(lightning_wrapper.model, train_set)
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
@@ -121,8 +121,13 @@ def train_model():
         devices=num_gpus,
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
+        accumulate_grad_batches=8 if dim == "3D" else 1,
     )
-    trainer = L.Trainer(**trainer_config.dict(), callbacks=[start_info_callback, print_callback, setup_logger, progress_logger], logger=logger)
+    trainer = L.Trainer(
+        **trainer_config.dict(), 
+        callbacks=[start_info_callback, print_callback, setup_logger, progress_logger], 
+        logger=logger
+        )
 
     trainer.fit(
         model=lightning_wrapper,

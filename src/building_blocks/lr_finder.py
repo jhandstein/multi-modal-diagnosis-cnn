@@ -12,7 +12,7 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.data_management.data_set import DataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import AGE_SEX_BALANCED_10K_PATH, PLOTS_PATH, FeatureMapType
-from utils.cuda_utils import calculate_model_size
+from src.utils.cuda_utils import calculate_model_size
 
 
 def estimate_initial_learning_rate():
