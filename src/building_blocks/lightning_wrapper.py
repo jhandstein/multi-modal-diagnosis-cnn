@@ -58,14 +58,6 @@ class LightningWrapperCnn(L.LightningModule):
         return self.model(x)
     
     # TODO: Remove later
-    def on_train_batch_end(self, outputs, batch, batch_idx):
-        if batch_idx % 100 == 0:  # Log every 100 batches
-            memory = torch.cuda.memory_allocated() / 1024**2  # MB
-            peak_memory = torch.cuda.max_memory_allocated() / 1024**2  # MB
-            self.log("gpu_memory_usage_mb", memory, **self.logging_params)
-            self.log("gpu_peak_memory_usage_mb", peak_memory, **self.logging_params)
-    
-    # TODO: Remove later
     def on_train_end(self):
         super().on_train_end()
         print(f"\nGPU {self.device} Statistics:")

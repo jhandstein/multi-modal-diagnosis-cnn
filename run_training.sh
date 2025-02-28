@@ -14,7 +14,9 @@ echo "Logging output to $FILENAME"
 # Start the Python script with nohup and redirect output to the file
 . .venv/bin/activate
 nohup python3 train_model.py > "$FILENAME" 2>&1 &
-echo "Python script started with nohup."
+PID=$!
+echo "Python script started with PID: $PID"
+echo "PID: $PID" >> "$FILENAME"
 
 sleep 1
 tail -f "$FILENAME"

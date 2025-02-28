@@ -5,7 +5,7 @@ BATCH_PARAMS_CUDA01 = {
     ("2D", "ConvBranch"): (64, 1),
     ("2D", "ResNet18"): (64, 1),
     ("3D", "ConvBranch"): (4, 4),
-    ("3D", "ResNet18"): (4, 4),
+    ("3D", "ResNet18"): (4, 4), # TODO: Figure out why GPU runs of of memory after having processed 5 (!) batches with 8 samples each
 }
 
 
