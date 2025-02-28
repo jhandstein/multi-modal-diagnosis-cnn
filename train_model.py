@@ -17,7 +17,7 @@ from src.building_blocks.metrics_callbacks import (
 )
 from src.data_management.data_set import DataSetConfig
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_loader import prepare_standard_data_loaders
+from src.data_management.data_loader import infer_batch_size, prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
 from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
@@ -43,7 +43,7 @@ def train_model():
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
     num_gpus = torch.cuda.device_count()
-    batch_size = 64 if dim == "2D" else 2 # should be maximum val_set size / num_gpus?
+    batch_size, accumulate_batches = infer_batch_size(dim, model_type)
     epochs = 100
     learning_rate = 1e-3
     experiment_notes = {"notes": f"ResNet183D with accumulate batches=8, batch_size=2. Running classification with Adam default LR. Scaling of 0.5 for image inputs."}
@@ -52,6 +52,7 @@ def train_model():
         "Task": task,
         "Epochs": epochs,
         "Batch Size": batch_size,
+        "Accumulate Batches": accumulate_batches,
         "Num GPUs": num_gpus,
         "Learning Rate": learning_rate,
         "Experiment Notes": experiment_notes,
@@ -121,7 +122,7 @@ def train_model():
         devices=num_gpus,
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
-        accumulate_grad_batches=8 if dim == "3D" else 1,
+        accumulate_grad_batches=accumulate_batches,
     )
     trainer = L.Trainer(
         **trainer_config.dict(), 

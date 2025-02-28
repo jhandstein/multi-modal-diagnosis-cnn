@@ -1,4 +1,19 @@
+from typing import Literal
 from torch.utils.data import DataLoader, Dataset
+
+BATCH_PARAMS_CUDA01 = {
+    ("2D", "ConvBranch"): (64, 1),
+    ("2D", "ResNet18"): (64, 1),
+    ("3D", "ConvBranch"): (4, 4),
+    ("3D", "ResNet18"): (4, 4),
+}
+
+
+def infer_batch_size(dim: Literal["2D", "3D"], model_type: Literal["ConvBranch", "ResNet18"]) -> tuple[int, int]:
+    """
+    Infer the batch size and number of accumulated batches based on the model type and dimensionality. Just a wrapper around the BATCH_PARAMS dictionary.
+    """
+    return BATCH_PARAMS_CUDA01[(dim, model_type)]
 
 
 def prepare_standard_data_loaders(
