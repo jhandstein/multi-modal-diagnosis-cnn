@@ -55,11 +55,11 @@ def plot_metrics_when_failed_during_training():
     task = "regression"
 
     # Format metrics file
-    # metrics_path = Path("/home/julius/repositories/ccn_code/models/ResNet18Regression_2D_anat_GM_regression_age/version_0/metrics.csv")
+    # metrics_path = Path("/home/julius/repositories/ccn_code/models_test/250228_ConvBranch2dBinary_anat_GM_sex/version_1/metrics.csv")
     # format_metrics_file(metrics_path)
 
     # Plot metrics
-    metrics_path = Path("/home/julius/repositories/ccn_code/models/_old/ConvBranch2dRegression_2D_anat_GM_regression_age/version_1/metrics_formatted.csv")
+    metrics_path = Path("/home/julius/repositories/ccn_code/models/250302_ConvBranch3dRegression_anat_GM_age/version_0/metrics_formatted.csv")
     plot_all_metrics(metrics_path, task=task, splits=["train", "val"])
 
 

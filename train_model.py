@@ -1,11 +1,15 @@
+import argparse
 import time
 from pathlib import Path
 
+import torch
 import lightning as L
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
-import torch
+from lightning.pytorch.callbacks import LearningRateMonitor, DeviceStatsMonitor
 
+
+from src.building_blocks.lr_finder import TestWrapper
 from src.building_blocks.model_factory import ModelFactory
 from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
 from src.building_blocks.lightning_wrapper import LightningWrapperCnn
@@ -17,11 +21,12 @@ from src.building_blocks.metrics_callbacks import (
 )
 from src.data_management.data_set import DataSetConfig
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_loader import infer_batch_size, prepare_standard_data_loaders
+from src.data_management.data_loader import infer_batch_size, infer_gpu_count, prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
 from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
+    AGE_SEX_BALANCED_1K_PATH,
     FeatureMapType,
 )
 from src.utils.cuda_utils import check_cuda, calculate_model_size
@@ -29,7 +34,7 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 
-def train_model():
+def train_model(num_gpus: int = None, compute_node: str = None):
     """Handles all the logic for training the model."""
 
     # Set seed for reproducibility
@@ -40,26 +45,36 @@ def train_model():
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    model_type = "ResNet18" # "ResNet18" "ConvBranch"
+    model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
-    num_gpus = torch.cuda.device_count()
-    batch_size, accumulate_batches = infer_batch_size(dim, model_type)
+    batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
+    # batch_size, accumulate_grad_batches = 16, 1
     epochs = 100
-    learning_rate = 1e-3
-    experiment_notes = {"notes": f"ResNet183D with accumulate batches=8, batch_size=2. Running classification with Adam default LR. Scaling of 0.5 for image inputs."}
+    # todo: derive learning rate dynamically from dict / utility function
+    learning_rate = 1e-2
+    # num_gpus = 1 # 8 if dim == "2D" else 4 # torch.cuda.device_count()
+    # todo: add argparse or function to infer (minimum) gpu count
+    num_gpus = infer_gpu_count(compute_node, num_gpus)
+    experiment_notes = {"notes": f"Cuda02!. Testing run_time. Testing 1cycle policy with {model_type} model."}
 
     print_collection_dict = {
+        # todo: think about which parameters to add to json file
+        "Compute Node": compute_node,
+        "Model Type": model_type,
+        "Data Dimension": dim,
+        "Feature Map": feature_map,
+        "Target": target,
         "Task": task,
         "Epochs": epochs,
         "Batch Size": batch_size,
-        "Accumulate Batches": accumulate_batches,
+        "Accumulate Gradient Batches": accumulate_grad_batches,
         "Num GPUs": num_gpus,
-        "Learning Rate": learning_rate,
+        "Initial Learning Rate": learning_rate,
         "Experiment Notes": experiment_notes,
     }
 
     # Experiment setup
-    if epochs > 5:
+    if epochs > 10:
         log_dir = Path("models")
     else:
         log_dir = Path("models_test")
@@ -92,8 +107,14 @@ def train_model():
     print_collection_dict["Model Size"] = calculate_model_size(model)
 
     # Setup lightning wrapper
-    lightning_wrapper = LightningWrapperCnn(
-        model=model, task=task, learning_rate=learning_rate
+    # lightning_wrapper = LightningWrapperCnn(
+    #     model=model, task=task, learning_rate=learning_rate
+    # )
+   
+    # batch_size is already factored in due to the data loader logic
+    num_steps_per_epoch = len(train_loader) // accumulate_grad_batches
+    lightning_wrapper = TestWrapper(
+        model=model, task=task, learning_rate=learning_rate, epochs=epochs, num_steps_per_epoch=num_steps_per_epoch
     )
 
     # Model name for logging
@@ -116,17 +137,18 @@ def train_model():
     progress_logger = TrainingProgressTracker(
         logger=logger,
     )
+    learning_rate_monitor = LearningRateMonitor(logging_interval="step")
 
     # Trainer setup
     trainer_config = LightningTrainerConfig(
         devices=num_gpus,
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
-        accumulate_grad_batches=accumulate_batches,
+        accumulate_grad_batches=accumulate_grad_batches,
     )
     trainer = L.Trainer(
         **trainer_config.dict(), 
-        callbacks=[start_info_callback, print_callback, setup_logger, progress_logger], 
+        callbacks=[start_info_callback, print_callback, setup_logger, progress_logger, learning_rate_monitor], 
         logger=logger
         )
 
@@ -157,8 +179,54 @@ def train_model():
         # Set model into evaluation mode
         lightning_model.eval()
 
+def setup_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="train_model",
+        description="Train a model on the MRI data set."
+        )
+    parser.add_argument(
+        "-c", "--compute_node",
+        type=str,
+        required=True,
+        choices=["cuda01", "cuda02"],
+        help="The computing node to use for training."
+    )
+    parser.add_argument(
+        "-g", "--num_gpus",
+        type=int,
+        default=None,
+        help="The number of GPUs to use for training."
+    )
+    return parser
 
 if __name__ == "__main__":
-    # check_cuda()
+    """
+    The script can be run either directly with Python or via the run_training.sh script. 
+    If using the latter, the first argument is an optional prefix for the output file.
 
-    train_model()
+    Direct Python execution:
+    - python train_model.py -c cuda02
+    - python train_model.py -c cuda02 -g 4
+    - python train_model.py --compute_node cuda02 --num_gpus 2
+
+    Via run_training.sh (which handles nohup output):
+    - bash run_training.sh test -c cuda02
+    - bash run_training.sh experiment1 -c cuda02 -g 4
+    - bash run_training.sh gpu_test -c cuda02 --num_gpus 2
+
+    Note: 
+    - -c/--compute_node is required in both cases
+    - -g/--num_gpus is optional
+    - When using run_training.sh, the first argument is an optional prefix for the output file
+    """
+
+
+    # check_cuda()
+    parser = setup_parser()
+    args = parser.parse_args()
+
+    print(f"Batch size and accumulate batches: {infer_batch_size(args.compute_node, '3D', 'ConvBranch')}")
+    print(f"Number of GPUs: {infer_gpu_count(args.compute_node, args.num_gpus)}")
+
+    # train_model(args.num_gpus, args.compute_node)
+

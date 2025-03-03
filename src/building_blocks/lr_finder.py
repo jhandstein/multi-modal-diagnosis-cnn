@@ -112,15 +112,42 @@ def plot_lr_finder_results(lr_finder, model_name: str):
 
 
 class TestWrapper(LightningWrapperCnn):
+    """
+    Wrapper class for testing purposes
+    
+    Args:
+        model: PyTorch model
+        task: str, "classification" or "regression"
+        learning_rate: float, initial learning rate
+        epochs: int, number of epochs to train
+        num_steps_per_epoch: int, number of steps per epoch
+    """
+    
+
+    def __init__(
+        self, model, task: str, learning_rate: float, epochs: int, num_steps_per_epoch: int,
+    ):
+        super().__init__(model, task, learning_rate)
+        # todo: remove this since we use the trainer.estimated_stepping_batches
+        self.epochs = epochs
+        self.num_steps_per_epoch = num_steps_per_epoch
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        # hardcoded lr since 1cylce resets it anyway
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 optimizer,
-                max_lr=0.1,
-                steps_per_epoch=64,
-                epochs=10,
-                three_phase=True
+                max_lr=self.learning_rate * 25, # div_factor=25 -> initial_lr = max_lr / 25 = self.learning_rate
+                # total_steps=self.epochs * self.num_steps_per_epoch,
+                total_steps=self.trainer.estimated_stepping_batches,
+                three_phase=True,
+                # anneal_strategy="linear",
             )
-        return [optimizer], [lr_scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "interval": "step", # Important!
+            }
+        }
     

@@ -1,6 +1,7 @@
 from typing import Literal
 from torch.utils.data import DataLoader, Dataset
 
+# todo: rewrite into class
 BATCH_PARAMS_CUDA01 = {
     ("2D", "ConvBranch"): (64, 1),
     ("2D", "ResNet18"): (64, 1),
@@ -8,12 +9,54 @@ BATCH_PARAMS_CUDA01 = {
     ("3D", "ResNet18"): (4, 4), # TODO: Figure out why GPU runs of of memory after having processed 5 (!) batches with 8 samples each
 }
 
+BATCH_PARAMS_CUDA02 = {
+    ("2D", "ConvBranch"): (64, 1),
+    ("2D", "ResNet18"): (64, 1),
+    ("3D", "ConvBranch"): (16, 1),
+    ("3D", "ResNet18"): (16, 1),
+}
 
-def infer_batch_size(dim: Literal["2D", "3D"], model_type: Literal["ConvBranch", "ResNet18"]) -> tuple[int, int]:
+
+def infer_gpu_count(node: Literal["cuda01", "cuda02"], num_gpus: int | None = None) -> int:
     """
-    Infer the batch size and number of accumulated batches based on the model type and dimensionality. Just a wrapper around the BATCH_PARAMS dictionary.
+    Infer the number of GPUs from the node if no default value is provided.
     """
-    return BATCH_PARAMS_CUDA01[(dim, model_type)]
+    if num_gpus is None:
+        return 4 if node == "cuda01" else 1
+    
+    if node == "cuda02" and num_gpus > 2:
+        raise ValueError("Dirty boy! You can't use more than 2 GPUs on cuda02.")
+    
+    if node == "cuda01" and num_gpus > 8:
+        print("Warning: You can't use more than 8 GPUs on cuda01. Using 8 GPUs.")
+        num_gpus = 8
+        
+    return num_gpus
+
+
+def infer_batch_size(
+        computing_node: Literal["cuda01", "cuda02"], 
+        dim: Literal["2D", "3D"], 
+        model_type: Literal["ConvBranch", "ResNet18"]
+        ) -> tuple[int, int]:
+    """
+    Infer the batch size and number of accumulated batches based on the model type and dimensionality. Just a wrapper around the BATCH_PARAMS dictionaries.
+
+    Args:
+        computing_node (Literal["cuda01", "cuda02"]): The computing node to use.
+        dim (Literal["2D", "3D"]): The dimensionality of the data.
+        model_type (Literal["ConvBranch", "ResNet18"]): The model type.
+
+    Returns:
+        tuple[int, int]: The batch size and number of accumulated batches.
+    """
+    if computing_node == "cuda01":
+        return BATCH_PARAMS_CUDA01[(dim, model_type)]
+    elif computing_node == "cuda02":
+        return BATCH_PARAMS_CUDA02[(dim, model_type)]
+    else:
+        raise ValueError("Invalid computing node.")
+
 
 
 def prepare_standard_data_loaders(

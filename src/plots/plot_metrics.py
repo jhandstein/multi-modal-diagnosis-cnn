@@ -58,6 +58,9 @@ def plot_metric(
     ax.set_ylabel(metric_name)
     ax.set_title(f"{metric_name} Over Training")
     ax.legend(loc="center right")
+    # Set log scale for loss metrics
+    if metric in [TrainingMetric.MAE, TrainingMetric.MSE, TrainingMetric.RMSE]:
+        ax.set_yscale("log")
     
     plt.tight_layout()
     plot_folder_path = file_path.parent / "plots"
