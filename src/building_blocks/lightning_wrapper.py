@@ -148,3 +148,28 @@ class LightningWrapperCnn(L.LightningModule):
         """Debugging function to check the shapes of the predictions."""
         print("label_shape", y.shape)
         print("prediction_shape", y_hat.shape)
+
+
+class OneCycleWrapper(LightningWrapperCnn):
+    def __init__(
+        self, model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+    ):
+        super().__init__(model, task, learning_rate)
+
+    def configure_optimizers(self):
+        # hardcoded lr since 1cylce resets it anyway
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                max_lr=self.learning_rate * 25, # div_factor=25 -> initial_lr = max_lr / 25 = self.learning_rate
+                total_steps=self.trainer.estimated_stepping_batches,
+                three_phase=True,
+                # anneal_strategy="linear",
+            )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "interval": "step", # Important!
+            }
+        }

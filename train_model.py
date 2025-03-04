@@ -11,8 +11,8 @@ from lightning.pytorch.callbacks import LearningRateMonitor, DeviceStatsMonitor
 
 from src.building_blocks.lr_finder import TestWrapper
 from src.building_blocks.model_factory import ModelFactory
-from src.building_blocks.lightning_trainer_config import LightningTrainerConfig
-from src.building_blocks.lightning_wrapper import LightningWrapperCnn
+from building_blocks.lightning_configs import LightningTrainerConfig
+from src.building_blocks.lightning_wrapper import LightningWrapperCnn, OneCycleWrapper
 from src.building_blocks.metrics_callbacks import (
     ExperimentSetupLogger,
     ExperimentStartCallback,
@@ -112,9 +112,13 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     # )
    
     # batch_size is already factored in due to the data loader logic
-    num_steps_per_epoch = len(train_loader) // accumulate_grad_batches
-    lightning_wrapper = TestWrapper(
-        model=model, task=task, learning_rate=learning_rate, epochs=epochs, num_steps_per_epoch=num_steps_per_epoch
+    # num_steps_per_epoch = len(train_loader) // accumulate_grad_batches
+    # lightning_wrapper = TestWrapper(
+    #     model=model, task=task, learning_rate=learning_rate, epochs=epochs, num_steps_per_epoch=num_steps_per_epoch
+    # )
+
+    lightning_wrapper = OneCycleWrapper(
+        model=model, task=task, learning_rate=learning_rate
     )
 
     # Model name for logging
