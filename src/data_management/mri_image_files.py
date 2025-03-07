@@ -1,4 +1,5 @@
 # https://lukas-snoek.com/NI-edu/fMRI-introduction/week_1/python_for_mri.html
+import gc
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -49,7 +50,8 @@ class MriImageFile:
                         depend on which dimension was sliced or (1, dim1, dim2, dim3) if no slice
         """
         # Load the feature map as a float tensor
-        t = torch.from_numpy(self.load_array()).float()
+        img = nib.load(self.file_path)
+        t = torch.from_numpy(img.get_fdata(dtype=np.float32))
         
         # Extract the middle slice from the specified dimension
         if self.middle_slice:
@@ -66,23 +68,20 @@ class MriImageFile:
                 t = t[:, :, slice_idx]
 
         else:
-            # Add batch and channel dimensions, then interpolate
-            t = t.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, D, H, W)
-            t = F.interpolate(
-                t,
-                scale_factor=0.5,
-                mode='trilinear',
-                align_corners=False
-            )
-            t = t.squeeze(0).squeeze(0)  # Remove batch and channel dimensions
-        # Add a channel dimension
-        t = t.unsqueeze(0)
-        return t
+            # Use no_grad to save memory
+            with torch.no_grad():  
+                # Use in-place operation (underscore) to save memory
+                t = t.unsqueeze_(0).unsqueeze_(0) 
+                t = F.interpolate(
+                    t,
+                    scale_factor=0.5,
+                    mode='trilinear',
+                    align_corners=False
+                )
+                t.squeeze_(0).squeeze_(0)     
 
-    def load_array(self) -> np.ndarray:
-        """Loads the feature map file as a numpy array"""
-        img = nib.load(self.file_path)
-        return img.get_fdata()
+        # Add a channel dimension
+        return t.unsqueeze_(0)
 
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""

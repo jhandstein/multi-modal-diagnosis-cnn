@@ -21,6 +21,7 @@ from src.utils.config import (
 from src.testing._250131_first_data_splits import create_balanced_samples
 from src.utils.file_path_helper import construct_model_name
 from src.utils.process_metrics import format_metrics_file
+from src.utils.cuda_utils import calculate_tensor_size
 
 
 def test_data_set_factory():
@@ -50,6 +51,12 @@ def find_lr():
     sug_rate = estimate_initial_learning_rate()
     print(sug_rate)
 
+def check_file_size():
+    """Create MRI image file and check size."""
+    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=False)
+    size = calculate_tensor_size(mri_image_file.load_as_tensor(), batch_size=16)
+    print(f"Size in MB: {size}")
+
 def plot_metrics_when_failed_during_training():
     # Setup
     task = "regression"
@@ -67,15 +74,19 @@ def plot_mri_slices():
     """Plot MRI slices for different dimensions and feature maps."""
     for dim in [0, 1, 2]:
         for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
-            plot_mri_slice(100008, slice_dim=dim, feature_map=fm)
+            plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
+
 
 if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
 
     # find_lr()
-    plot_metrics_when_failed_during_training()
+    # check_file_size()
+    # plot_metrics_when_failed_during_training()
 
     # mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=False)
     # print(mri_image_file.get_size())
     # mri_image_file._num_params()
+
+    plot_mri_slices()

@@ -50,6 +50,7 @@ def print_nccl_vars():
 
 # Add after model creation
 def calculate_model_size(model):
+    """Calculate the size of a model in MB"""
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()
@@ -59,3 +60,7 @@ def calculate_model_size(model):
     size_all_mb = (param_size + buffer_size) / 1024**2
     return f"{size_all_mb:.2f} MB"
 
+
+def calculate_tensor_size(tensor: torch.Tensor, batch_size: int = 1):
+    """Calculate the size of a tensor in MB"""
+    return batch_size * tensor.nelement() * tensor.element_size() / 1024**2

@@ -16,7 +16,11 @@ def plot_mri_slice(subject_id: int, feature_map = FeatureMapType.GM, slice_dim: 
 
     plt.imshow(mri_slice, cmap="gray")
     plt.axis("off")
-    file_path = PLOTS_PATH / "mri_slices" / f"slice_{subject_id}_map{feature_map.label}_dim{slice_dim}.png"
+
+    folder_path = PLOTS_PATH / "mri_slices" / f"images-{subject_id}"
+    if not folder_path.exists():
+        folder_path.mkdir(parents=True, exist_ok=True)
+    file_path = folder_path / f"slice_{subject_id}_map_{feature_map.label}_dim{slice_dim}.png"
     if not file_path.parent.exists():
         file_path.parent.mkdir(parents=True)
     plt.savefig(file_path)

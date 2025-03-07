@@ -9,9 +9,8 @@ from lightning.pytorch import seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, DeviceStatsMonitor
 
 
-from src.building_blocks.lr_finder import TestWrapper
 from src.building_blocks.model_factory import ModelFactory
-from building_blocks.lightning_configs import LightningTrainerConfig
+from src.building_blocks.lightning_configs import LightningTrainerConfig
 from src.building_blocks.lightning_wrapper import LightningWrapperCnn, OneCycleWrapper
 from src.building_blocks.metrics_callbacks import (
     ExperimentSetupLogger,
@@ -37,25 +36,24 @@ from src.utils.file_path_helper import construct_model_name
 def train_model(num_gpus: int = None, compute_node: str = None):
     """Handles all the logic for training the model."""
 
+    print("Training model...")
+
     # Set seed for reproducibility
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
+    task = "classification" # "classification" "regression"
     dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
-    # batch_size, accumulate_grad_batches = 16, 1
-    epochs = 100
+    epochs = 5
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 1e-2
-    # num_gpus = 1 # 8 if dim == "2D" else 4 # torch.cuda.device_count()
-    # todo: add argparse or function to infer (minimum) gpu count
+    learning_rate = 4e-3
     num_gpus = infer_gpu_count(compute_node, num_gpus)
-    experiment_notes = {"notes": f"Cuda02!. Testing run_time. Testing 1cycle policy with {model_type} model."}
+    experiment_notes = {"notes": f"Timing model with no grad"}
 
     print_collection_dict = {
         # todo: think about which parameters to add to json file
@@ -229,8 +227,8 @@ if __name__ == "__main__":
     parser = setup_parser()
     args = parser.parse_args()
 
-    print(f"Batch size and accumulate batches: {infer_batch_size(args.compute_node, '3D', 'ConvBranch')}")
-    print(f"Number of GPUs: {infer_gpu_count(args.compute_node, args.num_gpus)}")
+    # print(f"Batch size and accumulate batches: {infer_batch_size(args.compute_node, '3D', 'ConvBranch')}")
+    # print(f"Number of GPUs: {infer_gpu_count(args.compute_node, args.num_gpus)}")
 
-    # train_model(args.num_gpus, args.compute_node)
+    train_model(args.num_gpus, args.compute_node)
 
