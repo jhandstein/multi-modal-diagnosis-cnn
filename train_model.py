@@ -6,7 +6,7 @@ import torch
 import lightning as L
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
-from lightning.pytorch.callbacks import LearningRateMonitor, DeviceStatsMonitor
+from lightning.pytorch.callbacks import LearningRateMonitor
 
 
 from src.building_blocks.model_factory import ModelFactory
@@ -48,12 +48,12 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
+    epochs = 10
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
-    epochs = 5
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 4e-3
+    learning_rate = 8e-5 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
-    experiment_notes = {"notes": f"Timing model with no grad"}
+    experiment_notes = {"notes": f"Resnet18 3D with 32 theoretical batch size (and double learning rate compared to BS16)"}
 
     print_collection_dict = {
         # todo: think about which parameters to add to json file
@@ -78,16 +78,18 @@ def train_model(num_gpus: int = None, compute_node: str = None):
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    ds_config = DataSetConfig(
-        feature_map=feature_map,
-        target=target,
-        middle_slice=True if dim == "2D" else False,
-    )
-    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+    train_set, val_set, test_set = create_data_set(feature_map, target, dim)
+
+    # ds_config = DataSetConfig(
+    #     feature_map=feature_map,
+    #     target=target,
+    #     middle_slice=True if dim == "2D" else False,
+    # )
+    # data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
     
-    train_set, val_set, test_set = DataSetFactory(
-        data_split["train"], data_split["val"], data_split["test"], ds_config
-    ).create_data_sets()
+    # train_set, val_set, test_set = DataSetFactory(
+    #     data_split["train"], data_split["val"], data_split["test"], ds_config
+    # ).create_data_sets()
 
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
@@ -151,7 +153,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     trainer = L.Trainer(
         **trainer_config.dict(), 
         callbacks=[start_info_callback, print_callback, setup_logger, progress_logger, learning_rate_monitor], 
-        logger=logger
+        logger=logger,
         )
 
     trainer.fit(
@@ -180,6 +182,22 @@ def train_model(num_gpus: int = None, compute_node: str = None):
 
         # Set model into evaluation mode
         lightning_model.eval()
+
+
+def create_data_set(feature_map: FeatureMapType, target: str, dim: str):
+    """Create a data set for training."""
+    # Prepare data sets and loaders
+    ds_config = DataSetConfig(
+        feature_map=feature_map,
+        target=target,
+        middle_slice=True if dim == "2D" else False,
+    )
+    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+    
+    return DataSetFactory(
+        data_split["train"], data_split["val"], data_split["test"], ds_config
+    ).create_data_sets()
+
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
