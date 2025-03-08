@@ -28,7 +28,7 @@ from src.utils.config import (
     AGE_SEX_BALANCED_1K_PATH,
     FeatureMapType,
 )
-from src.utils.cuda_utils import check_cuda, calculate_model_size
+from src.utils.cuda_utils import allocated_free_gpus, check_cuda, calculate_model_size
 from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
@@ -43,17 +43,17 @@ def train_model(num_gpus: int = None, compute_node: str = None):
 
     # Set parameters for training
     task = "classification" # "classification" "regression"
-    dim = "3D"
+    dim = "2D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
-    epochs = 10
+    epochs = 3
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 8e-5 # mr_lr = lr * 25
+    learning_rate = 4e-5 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
-    experiment_notes = {"notes": f"Resnet18 3D with 32 theoretical batch size (and double learning rate compared to BS16)"}
+    experiment_notes = {"notes": f""}
 
     print_collection_dict = {
         # todo: think about which parameters to add to json file
@@ -78,19 +78,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    train_set, val_set, test_set = create_data_set(feature_map, target, dim)
-
-    # ds_config = DataSetConfig(
-    #     feature_map=feature_map,
-    #     target=target,
-    #     middle_slice=True if dim == "2D" else False,
-    # )
-    # data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
-    
-    # train_set, val_set, test_set = DataSetFactory(
-    #     data_split["train"], data_split["val"], data_split["test"], ds_config
-    # ).create_data_sets()
-
+    train_set, val_set, test_set = create_data_sets(feature_map, target, dim)
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
     )
@@ -110,13 +98,6 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     # lightning_wrapper = LightningWrapperCnn(
     #     model=model, task=task, learning_rate=learning_rate
     # )
-   
-    # batch_size is already factored in due to the data loader logic
-    # num_steps_per_epoch = len(train_loader) // accumulate_grad_batches
-    # lightning_wrapper = TestWrapper(
-    #     model=model, task=task, learning_rate=learning_rate, epochs=epochs, num_steps_per_epoch=num_steps_per_epoch
-    # )
-
     lightning_wrapper = OneCycleWrapper(
         model=model, task=task, learning_rate=learning_rate
     )
@@ -145,7 +126,8 @@ def train_model(num_gpus: int = None, compute_node: str = None):
 
     # Trainer setup
     trainer_config = LightningTrainerConfig(
-        devices=num_gpus,
+        # devices=num_gpus,
+        devices=allocated_free_gpus(num_gpus),
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
         accumulate_grad_batches=accumulate_grad_batches,
@@ -184,7 +166,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
         lightning_model.eval()
 
 
-def create_data_set(feature_map: FeatureMapType, target: str, dim: str):
+def create_data_sets(feature_map: FeatureMapType, target: str, dim: str):
     """Create a data set for training."""
     # Prepare data sets and loaders
     ds_config = DataSetConfig(

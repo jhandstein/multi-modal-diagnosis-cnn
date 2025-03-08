@@ -21,7 +21,7 @@ from src.utils.config import (
 from src.testing._250131_first_data_splits import create_balanced_samples
 from src.utils.file_path_helper import construct_model_name
 from src.utils.process_metrics import format_metrics_file
-from src.utils.cuda_utils import calculate_tensor_size
+from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 
 
 def test_data_set_factory():
@@ -89,4 +89,6 @@ if __name__ == "__main__":
     # print(mri_image_file.get_size())
     # mri_image_file._num_params()
 
-    plot_mri_slices()
+    # plot_mri_slices()
+
+    print(allocated_free_gpus(2, max_usage_ratio=0.1))

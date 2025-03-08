@@ -7,6 +7,7 @@ import json
 from src.data_management.data_set import NakoSingleFeatureDataset
 
 class ExperimentStartCallback(Callback):
+    """Logs the start of the training process with the provided parameters in console"""
     def __init__(self, logger=None, logging_dict={}):
         self.logger = logger
         self.logging_dict = logging_dict
@@ -21,6 +22,7 @@ class ExperimentStartCallback(Callback):
 
 
 class ValidationPrintCallback(Callback):
+    """Prints validation loss"""
     def __init__(self, logger=None):
         self.validation_losses = []
         self.best_loss = float("inf")
@@ -56,7 +58,7 @@ class ValidationPrintCallback(Callback):
 
 
 class ExperimentSetupLogger(Callback):
-    """Logs initial experiment configuration and setup parameters"""
+    """Logs initial experiment configuration and setup parameters to JSON"""
     def __init__(
         self,
         logger=None,
@@ -113,7 +115,7 @@ class ExperimentSetupLogger(Callback):
 
 
 class TrainingProgressTracker(Callback):
-    """Tracks and logs training progress metrics"""
+    """Tracks and logs training progress metrics. Notably run parameters, epoch times, validation losses and best loss"""
     def __init__(self, logger=None):
         self.logger = logger
         self.start_time = None

@@ -1,7 +1,52 @@
 import os
+import subprocess
 import torch
 from lightning.pytorch.accelerators import find_usable_cuda_devices
 
+
+def allocated_free_gpus(num_gpus, max_usage_ratio: float = 0.8) -> list[int]:
+    """Return a list of GPUs with least memory usage.
+    
+    Args:
+        num_gpus (int): Number of GPUs requested
+        max_usage_ratio (float): Maximum acceptable memory usage ratio (0.0 to 1.0)
+        
+    Returns:
+        list[int]: Indices of least used GPUs
+    """
+    if not torch.cuda.is_available():
+        return []
+
+    # Run nvidia-smi to get memory usage across all processes
+    try:
+        cmd = "nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,nounits,noheader"
+        output = subprocess.check_output(cmd.split(), universal_newlines=True)
+    except subprocess.CalledProcessError:
+        print("Failed to run nvidia-smi")
+        return []
+
+    # Parse nvidia-smi output
+    memory_usage = []
+    for line in output.strip().split('\n'):
+        index, used, total = map(float, line.split(','))
+        usage_ratio = used / total
+        memory_usage.append((int(index), usage_ratio))
+
+    # print(f"Memory usage ratios: {[(i, f'{ratio:.2%}') for i, ratio in memory_usage]}")
+    
+    # Filter GPUs below usage threshold
+    available_gpus = [(i, ratio) for i, ratio in memory_usage if ratio < max_usage_ratio]
+    if len(available_gpus) < num_gpus:
+        print(f"Not enough GPUs available below {max_usage_ratio:.0%} usage threshold")
+        return []
+
+    # Sort by memory usage and return the indices of least used GPUs
+    sorted_gpus = sorted(available_gpus, key=lambda x: x[1])
+    print(f"Available GPUs sorted by usage: {[(i, f'{ratio:.2%}') for i, ratio in sorted_gpus]}")
+    
+    print(f"Selected GPUs: {[gpu[0] for gpu in sorted_gpus]}")
+    free_gpus = [gpu[0] for gpu in sorted_gpus[:num_gpus]]
+    return free_gpus
 
 def check_cuda(test_tensor_creation: bool = False, custom_device_call: bool = False):
     """Check if CUDA is available and print some information."""
