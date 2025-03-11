@@ -51,7 +51,8 @@ class MriImageFile:
         """
         # Load the feature map as a float tensor
         img = nib.load(self.file_path)
-        t = torch.from_numpy(img.get_fdata(dtype=np.float32))
+        # t = torch.from_numpy(img.get_fdata(dtype=np.float32))
+        t = torch.tensor(img.get_fdata(), dtype=torch.float32)
         
         # Extract the middle slice from the specified dimension
         if self.middle_slice:
@@ -69,16 +70,25 @@ class MriImageFile:
 
         else:
             # Use no_grad to save memory
-            with torch.no_grad():  
-                # Use in-place operation (underscore) to save memory
-                t = t.unsqueeze_(0).unsqueeze_(0) 
-                t = F.interpolate(
-                    t,
-                    scale_factor=0.5,
-                    mode='trilinear',
-                    align_corners=False
-                )
-                t.squeeze_(0).squeeze_(0)     
+            # with torch.no_grad():  
+            #     # Use in-place operation (underscore) to save memory
+            #     t = t.unsqueeze_(0).unsqueeze_(0) 
+            #     t = F.interpolate(
+            #         t,
+            #         scale_factor=0.5,
+            #         mode='trilinear',
+            #         align_corners=False
+            #     )
+            #     t.squeeze_(0).squeeze_(0)     
+                
+            t = t.unsqueeze(0).unsqueeze(0)
+            t = F.interpolate(
+                t,
+                scale_factor=0.5,
+                mode='trilinear',
+                align_corners=False
+            )
+            t = t.squeeze(0).squeeze(0)
 
         # Add a channel dimension
         return t.unsqueeze_(0)

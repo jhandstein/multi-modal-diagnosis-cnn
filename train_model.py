@@ -33,7 +33,7 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 
-def train_model(num_gpus: int = None, compute_node: str = None):
+def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = None):
     """Handles all the logic for training the model."""
 
     print("Training model...")
@@ -42,37 +42,45 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
-    dim = "2D"
+    task = "regression" # "classification" "regression"
+    dim = "3D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
     model_type = "ConvBranch" # "ResNet18" "ConvBranch"
 
-    epochs = 3
+    epochs = 50
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 4e-5 # mr_lr = lr * 25
+    learning_rate = 8e-4 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
-    experiment_notes = {"notes": f""}
+    used_gpus = allocated_free_gpus(num_gpus)
+    experiment = "from-numpy-vs-tensor"
+    experiment_notes = {"notes": f"""
+                        WITHOUT no_grad in data loading. 
+                        torch.tensor function. 
+                        no underscore / normal squeezes
+                        """}
 
     print_collection_dict = {
-        # todo: think about which parameters to add to json file
         "Compute Node": compute_node,
+        "Experiment": experiment,
+        "Run Prefix": prefix,
         "Model Type": model_type,
         "Data Dimension": dim,
-        "Feature Map": feature_map,
+        "Feature Map": feature_map.label,
         "Target": target,
         "Task": task,
         "Epochs": epochs,
         "Batch Size": batch_size,
         "Accumulate Gradient Batches": accumulate_grad_batches,
         "Num GPUs": num_gpus,
+        "Used GPUs": used_gpus,
         "Initial Learning Rate": learning_rate,
         "Experiment Notes": experiment_notes,
     }
 
     # Experiment setup
-    if epochs > 10:
+    if epochs > 50:
         log_dir = Path("models")
     else:
         log_dir = Path("models_test")
@@ -103,7 +111,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
     )
 
     # Model name for logging
-    model_name = construct_model_name(lightning_wrapper.model, train_set)
+    model_name = construct_model_name(lightning_wrapper.model, train_set, experiment=experiment, compute_node=compute_node)
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
@@ -115,9 +123,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
         train_set=train_set,
         val_set=val_set,
         test_set=test_set,
-        batch_size=batch_size,
-        num_gpus=num_gpus,
-        notes=experiment_notes,
+        print_collection_dict=print_collection_dict,
     )
     progress_logger = TrainingProgressTracker(
         logger=logger,
@@ -126,8 +132,7 @@ def train_model(num_gpus: int = None, compute_node: str = None):
 
     # Trainer setup
     trainer_config = LightningTrainerConfig(
-        # devices=num_gpus,
-        devices=allocated_free_gpus(num_gpus),
+        devices=used_gpus,
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
         accumulate_grad_batches=accumulate_grad_batches,
@@ -186,6 +191,12 @@ def setup_parser() -> argparse.ArgumentParser:
         prog="train_model",
         description="Train a model on the MRI data set."
         )
+    
+    parser.add_argument(
+        "prefix",
+        type=str,
+        help="The prefix/tag for this training run"
+    )
     parser.add_argument(
         "-c", "--compute_node",
         type=str,
@@ -230,5 +241,5 @@ if __name__ == "__main__":
     # print(f"Batch size and accumulate batches: {infer_batch_size(args.compute_node, '3D', 'ConvBranch')}")
     # print(f"Number of GPUs: {infer_gpu_count(args.compute_node, args.num_gpus)}")
 
-    train_model(args.num_gpus, args.compute_node)
+    train_model(args.num_gpus, args.compute_node, args.prefix)
 

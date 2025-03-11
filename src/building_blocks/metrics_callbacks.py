@@ -65,14 +65,10 @@ class ExperimentSetupLogger(Callback):
         train_set: NakoSingleFeatureDataset = None,
         val_set: NakoSingleFeatureDataset = None,
         test_set: NakoSingleFeatureDataset = None,
-        batch_size: int = None,
-        num_gpus: int = None,
-        notes: dict = {},
+        print_collection_dict={},
     ):
         self.logger = logger
-        self.batch_size = batch_size
-        self.num_gpus = num_gpus
-        self.notes = notes
+        self.print_collection_dict = print_collection_dict
         
         # Store dataset indices
         self.dataset_info = {
@@ -89,15 +85,11 @@ class ExperimentSetupLogger(Callback):
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """Log experiment setup parameters before training starts"""
-        initial_lr = trainer.optimizers[0].param_groups[0]["lr"]
+        # initial_lr = trainer.optimizers[0].param_groups[0]["lr"]
         
         setup_info = {
             "training_params": {
-                "initial_lr": initial_lr,
-                "batch_size": self.batch_size,
-                "num_gpus": self.num_gpus,
-                "max_epochs": trainer.max_epochs,
-                **self.notes,
+                **self.print_collection_dict,
             },
             "model_info": {
                 "lightning_wrapper": pl_module.__class__.__name__,

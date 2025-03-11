@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader, Dataset
 BATCH_PARAMS_CUDA01 = {
     ("2D", "ConvBranch"): (64, 1),
     ("2D", "ResNet18"): (64, 1),
-    ("3D", "ConvBranch"): (4, 4),
-    ("3D", "ResNet18"): (4, 4), # TODO: Figure out why GPU runs of of memory after having processed 5 (!) batches with 8 samples each
+    ("3D", "ConvBranch"): (4, 8),
+    ("3D", "ResNet18"): (4, 8), # TODO: Figure out why GPU runs of of memory after having processed 5 (!) batches with 8 samples each on cuda01
 }
 
 BATCH_PARAMS_CUDA02 = {
@@ -19,7 +19,7 @@ BATCH_PARAMS_CUDA02 = {
 
 def infer_gpu_count(node: Literal["cuda01", "cuda02"], num_gpus: int | None = None) -> int:
     """
-    Infer the number of GPUs from the node if no default value is provided.
+    Infer the number of GPUs from the node if no default value is provided. Validate the number of GPUs based on the node.
     """
     if num_gpus is None:
         return 4 if node == "cuda01" else 1
