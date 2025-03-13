@@ -17,17 +17,17 @@ BATCH_PARAMS_CUDA02 = {
 }
 
 
-def infer_gpu_count(node: Literal["cuda01", "cuda02"], num_gpus: int | None = None) -> int:
+def infer_gpu_count(compute_node: Literal["cuda01", "cuda02"], num_gpus: int | None = None) -> int:
     """
     Infer the number of GPUs from the node if no default value is provided. Validate the number of GPUs based on the node.
     """
     if num_gpus is None:
-        return 4 if node == "cuda01" else 1
+        return 4 if compute_node == "cuda01" else 1
     
-    if node == "cuda02" and num_gpus > 2:
+    if compute_node == "cuda02" and num_gpus > 2:
         raise ValueError("Dirty boy! You can't use more than 2 GPUs on cuda02.")
     
-    if node == "cuda01" and num_gpus > 8:
+    if compute_node == "cuda01" and num_gpus > 8:
         print("Warning: You can't use more than 8 GPUs on cuda01. Using 8 GPUs.")
         num_gpus = 8
         
@@ -35,7 +35,7 @@ def infer_gpu_count(node: Literal["cuda01", "cuda02"], num_gpus: int | None = No
 
 
 def infer_batch_size(
-        computing_node: Literal["cuda01", "cuda02"], 
+        compute_node: Literal["cuda01", "cuda02"], 
         dim: Literal["2D", "3D"], 
         model_type: Literal["ConvBranch", "ResNet18"]
         ) -> tuple[int, int]:
@@ -50,9 +50,9 @@ def infer_batch_size(
     Returns:
         tuple[int, int]: The batch size and number of accumulated batches.
     """
-    if computing_node == "cuda01":
+    if compute_node == "cuda01":
         return BATCH_PARAMS_CUDA01[(dim, model_type)]
-    elif computing_node == "cuda02":
+    elif compute_node == "cuda02":
         return BATCH_PARAMS_CUDA02[(dim, model_type)]
     else:
         raise ValueError("Invalid computing node.")
