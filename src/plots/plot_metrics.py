@@ -21,6 +21,7 @@ METRIC_COLORS = {
     TrainingMetric.MAE: ["mediumorchid", "indigo", "tab:pink"],
     TrainingMetric.MSE: ["lightgreen", "darkgreen", "olive"],
     TrainingMetric.RMSE: ["tab:brown", "peru", "tab:orange"],
+    TrainingMetric.SPEARMAN: ["darkcyan", "turquoise", "lightgreen"],
 }
 
 def plot_metric(
@@ -141,7 +142,7 @@ def plot_task_metrics(
     splits: List[Literal["train", "val", "test"]] = ["train", "val"]
 ) -> None:
     """
-    Plot task-specific metrics (classification: f1/precision/recall/auc, regression: mae/mse/rmse).
+    Plot task-specific metrics (classification: f1/precision/recall/auc, regression: mae/mse/rmse/spearman).
     """
     classification_metrics = [
         TrainingMetric.F1,
@@ -152,7 +153,8 @@ def plot_task_metrics(
     regression_metrics = [
         TrainingMetric.MAE,
         TrainingMetric.MSE,
-        TrainingMetric.RMSE
+        TrainingMetric.RMSE,
+        TrainingMetric.SPEARMAN
     ]
     
     metrics_to_plot = classification_metrics if task == "classification" else regression_metrics

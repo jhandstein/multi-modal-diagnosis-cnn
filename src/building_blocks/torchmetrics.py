@@ -11,6 +11,7 @@ from torchmetrics.regression import (
     R2Score,
     MeanAbsoluteError,
     MeanSquaredError,
+    SpearmanCorrCoef,
 )
 
 
@@ -52,6 +53,7 @@ class RegressionMetrics(BaseMetrics):
             "mae": MeanAbsoluteError(),
             "mse": MeanSquaredError(),
             "rmse": MeanSquaredError(squared=False),
+            "spearman": SpearmanCorrCoef(),
         }
 
 

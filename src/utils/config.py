@@ -107,3 +107,4 @@ class TrainingMetric(Enum):
     MAE = "mae"
     MSE = "mse"
     RMSE = "rmse"
+    SPEARMAN = "spearman"
