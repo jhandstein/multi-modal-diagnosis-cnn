@@ -49,7 +49,7 @@ class ClassificationMetrics(BaseMetrics):
 class RegressionMetrics(BaseMetrics):
     def _initialize_metrics(self):
         self.metrics = {
-            "r2": R2Score(),
+            "r2": R2Score(), # darf nicht batch wise computed werden
             "mae": MeanAbsoluteError(),
             "mse": MeanSquaredError(),
             "rmse": MeanSquaredError(squared=False),

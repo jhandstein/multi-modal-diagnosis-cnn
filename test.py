@@ -76,7 +76,30 @@ def plot_mri_slices():
         for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
             plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
 
+def cache_tensor():
+    """Cache tensor."""
+    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True, slice_dim=0)
+    tensor = mri_image_file.load_as_tensor()
+    print(tensor.shape)
+    print(mri_image_file.cache_path)
 
+    tensor2 = mri_image_file.load_as_tensor()
+    print(tensor2.shape)
+
+def time_tensor_loading():
+    for i in range(10):
+        mri_file = MriImageFile(100010, FeatureMapType.GM, middle_slice=True, slice_dim=0)
+        start = time()
+        tensor = mri_file.load_as_tensor()
+        end = time()
+        print(f"Time elapsed for loading from .nii.gz: {end - start} seconds")
+
+        file_2 = MriImageFile(100008, FeatureMapType.GM, middle_slice=True, slice_dim=0)
+        start = time()
+        tensor_2 = file_2.load_as_tensor()
+        end = time()
+        print(f"Time elapsed for loading from cache: {end - start} seconds", "\n")
+    
 if __name__ == "__main__":
     print("Hello from test.py")
     # test_data_set_factory()
@@ -91,4 +114,7 @@ if __name__ == "__main__":
 
     # plot_mri_slices()
 
-    print(allocated_free_gpus(2, max_usage_ratio=0.1))
+    # print(allocated_free_gpus(2, max_usage_ratio=0.1))
+
+    # cache_tensor()
+    time_tensor_loading()

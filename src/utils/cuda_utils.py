@@ -42,9 +42,8 @@ def allocated_free_gpus(num_gpus, max_usage_ratio: float = 0.8) -> list[int]:
 
     # Sort by memory usage and return the indices of least used GPUs
     sorted_gpus = sorted(available_gpus, key=lambda x: x[1])
-    print(f"Available GPUs sorted by usage: {[(i, f'{ratio:.2%}') for i, ratio in sorted_gpus]}")
-    
-    print(f"Selected GPUs: {[gpu[0] for gpu in sorted_gpus]}")
+    # print(f"Available GPUs sorted by usage: {[(i, f'{ratio:.2%}') for i, ratio in sorted_gpus]}")
+    # print(f"Selected GPUs: {[gpu[0] for gpu in sorted_gpus]}")
     free_gpus = [gpu[0] for gpu in sorted_gpus[:num_gpus]]
     return free_gpus
 

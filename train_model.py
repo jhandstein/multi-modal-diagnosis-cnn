@@ -42,24 +42,20 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
-    dim = "3D"
+    task = "classification" # "classification" "regression"
+    dim = "2D"
     feature_map = FeatureMapType.GM
     target = "sex" if task == "classification" else "age"
-    model_type = "ConvBranch" # "ResNet18" "ConvBranch"
+    model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
-    epochs = 50
+    epochs = 30
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 8e-4 # mr_lr = lr * 25
+    learning_rate = 1e-5 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "from-numpy-vs-tensor"
-    experiment_notes = {"notes": f"""
-                        WITHOUT no_grad in data loading. 
-                        torch.tensor function. 
-                        no underscore / normal squeezes
-                        """}
+    experiment = "slice_selection"
+    experiment_notes = {"notes": f"Slice dimension: 1. Classification"}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -80,7 +76,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     }
 
     # Experiment setup
-    if epochs > 50:
+    if epochs > 20:
         log_dir = Path("models")
     else:
         log_dir = Path("models_test")
@@ -178,6 +174,7 @@ def create_data_sets(feature_map: FeatureMapType, target: str, dim: str):
         feature_map=feature_map,
         target=target,
         middle_slice=True if dim == "2D" else False,
+        slice_dim=1 if dim == "2D" else None,
     )
     data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
     
