@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import torch
 from torch.utils.data import Dataset
 
+from src.data_management.normalization import MriImageNormalizer
 from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureMapType
 from src.utils.load_targets import extract_target
@@ -31,6 +32,10 @@ class NakoSingleFeatureDataset(Dataset):
         # Get shape of one sample (without channel dimension)
         self.data_shape = MriImageFile(self.subject_ids[0], self.feature_map, self.middle_slice, self.slice_dim).get_size()
 
+        if ds_config.feature_map.label == "smri":
+            self.normalizer = MriImageNormalizer(data_dim="2D")
+            self.normalizer.load_normalization_params()
+
     def __len__(self):
         return int(len(self.subject_ids))
 
@@ -39,9 +44,26 @@ class NakoSingleFeatureDataset(Dataset):
         # Load the feature map as a tensor
         image_file = MriImageFile(subject_id, self.feature_map, self.middle_slice, self.slice_dim)
         feature_tensor = image_file.load_as_tensor()
+        if self.feature_map.label == "smri":
+            feature_tensor = self.normalizer.transform(feature_tensor)
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return feature_tensor, label
+
+def compute_normalization_params(train_dataset):
+    """Compute mean and std of the training set after min-max scaling"""
+    means = []
+    stds = []
+    
+    for i in range(len(train_dataset)):
+        feature, _ = train_dataset[i]
+        means.append(feature.mean().item())
+        stds.append(feature.std().item())
+    
+    mean = torch.tensor(means).mean().item()
+    std = torch.tensor(stds).mean().item()
+    
+    return mean, std
 
 
 def print_details(data_set: Dataset):

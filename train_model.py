@@ -44,18 +44,19 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     # Set parameters for training
     task = "classification" # "classification" "regression"
     dim = "2D"
-    feature_map = FeatureMapType.GM
+    feature_map = FeatureMapType.SMRI
     target = "sex" if task == "classification" else "age"
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
+    slice_dim = 2 if dim == "2D" else None
 
     epochs = 30
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
-    learning_rate = 1e-5 # mr_lr = lr * 25
+    learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
     experiment = "slice_selection"
-    experiment_notes = {"notes": f"Slice dimension: 1. Classification"}
+    experiment_notes = {"notes": f"Slice dimension: {slice_dim}. classification"}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -82,7 +83,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    train_set, val_set, test_set = create_data_sets(feature_map, target, dim)
+    train_set, val_set, test_set = create_data_sets(feature_map, target, dim, slice_dim)
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
     )
@@ -167,15 +168,14 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         lightning_model.eval()
 
 
-def create_data_sets(feature_map: FeatureMapType, target: str, dim: str):
+def create_data_sets(feature_map: FeatureMapType, target: str, dim: str, slice_dim: int = None):
     """Create a data set for training."""
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
         feature_map=feature_map,
         target=target,
         middle_slice=True if dim == "2D" else False,
-        slice_dim=1 if dim == "2D" else None,
-    )
+        slice_dim=slice_dim if dim == "2D" else None,    )
     data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
     
     return DataSetFactory(

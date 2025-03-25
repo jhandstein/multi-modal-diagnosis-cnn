@@ -10,3 +10,4 @@ plots/**
 .venv/**
 .lr_find_**
 **/lr_finder_results.png
+grid-env/**
