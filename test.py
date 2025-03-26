@@ -66,32 +66,10 @@ def plot_metrics_when_failed_during_training():
 def plot_mri_slices():
     """Plot MRI slices for different dimensions and feature maps."""
     for dim in [0, 1, 2]:
-        for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
-            plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
+        # for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
+        #     plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
+        plot_mri_slice(100010, slice_dim=dim, feature_map=FeatureMapType.CSF)
 
-def cache_tensor():
-    """Cache tensor."""
-    mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=True, slice_dim=0)
-    tensor = mri_image_file.load_as_tensor()
-    print(tensor.shape)
-    print(mri_image_file.cache_path)
-
-    tensor2 = mri_image_file.load_as_tensor()
-    print(tensor2.shape)
-
-def time_tensor_loading():
-    for i in range(10):
-        mri_file = MriImageFile(100010, FeatureMapType.GM, middle_slice=True, slice_dim=0)
-        start = time()
-        tensor = mri_file.load_as_tensor()
-        end = time()
-        print(f"Time elapsed for loading from .nii.gz: {end - start} seconds")
-
-        file_2 = MriImageFile(100008, FeatureMapType.GM, middle_slice=True, slice_dim=0)
-        start = time()
-        tensor_2 = file_2.load_as_tensor()
-        end = time()
-        print(f"Time elapsed for loading from cache: {end - start} seconds", "\n")
 
 def check_mri_intensities():
     mri_file = MriImageFile(100010, FeatureMapType.SMRI, middle_slice=True, slice_dim=0)
@@ -100,27 +78,16 @@ def check_mri_intensities():
     
 if __name__ == "__main__":
     print("Hello from test.py")
-    # test_data_set_factory()
+    # get_folder_size("/ritter/share/data/NAKO/deep_learning_cache/2D")
 
     # find_lr()
     # check_file_size()
     # plot_metrics_when_failed_during_training()
-
-    # mri_image_file = MriImageFile(100008, FeatureMapType.GM, middle_slice=False)
-    # print(mri_image_file.get_size())
-    # mri_image_file._num_params()
-
     # plot_mri_slices()
-
-    # print(allocated_free_gpus(2, max_usage_ratio=0.1))
-
-    # cache_tensor()
-    # time_tensor_loading()
     # check_mri_intensities()
 
     # train_set, val_set, test_set = create_data_sets([FeatureMapType.SMRI], "sex", "2D", slice_dim=0)
     # print(len(train_set), len(val_set), len(test_set))
-    # norm = MriImageNormalizer()
-    # norm.fit(test_set)
-    # print(norm.mean, norm.std)
-    get_folder_size("/ritter/share/data/NAKO/deep_learning_cache/2D")
+    # print(train_set.data_shape)
+    # print(train_set[0][0].shape)
+    # print(train_set[0][0].min(), train_set[0][0].max())

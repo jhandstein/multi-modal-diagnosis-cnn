@@ -163,8 +163,7 @@ class OneCycleWrapper(LightningWrapperCnn):
                 optimizer,
                 max_lr=self.learning_rate * 25, # div_factor=25 -> initial_lr = max_lr / 25 = self.learning_rate
                 total_steps=self.trainer.estimated_stepping_batches,
-                three_phase=True,
-                # anneal_strategy="linear",
+                three_phase=True
             )
         return {
             "optimizer": optimizer,

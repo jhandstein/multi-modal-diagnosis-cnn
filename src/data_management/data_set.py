@@ -45,7 +45,11 @@ class NakoSingleModalityDataset(Dataset):
         subject_id = self.subject_ids[idx]
         # Load the feature map as a tensor
         feature_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.feature_maps]
-        feature_tensor = torch.cat(feature_tensors, dim=0)
+        try:
+            feature_tensor = torch.cat(feature_tensors, dim=0)
+        except RuntimeError:
+            raise ValueError("Feature maps have different shapes. Please check the data.")
+
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return feature_tensor, label

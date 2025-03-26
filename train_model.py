@@ -2,7 +2,6 @@ import argparse
 import time
 from pathlib import Path
 
-import torch
 import lightning as L
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
@@ -42,21 +41,24 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
+    task = "classification" # "classification" "regression"
     dim = "2D"
-    feature_maps = [FeatureMapType.GM]
+    feature_maps = [
+        # FeatureMapType.GM, 
+        FeatureMapType.WM, 
+        FeatureMapType.CSF
+    ]
     target = "sex" if task == "classification" else "age"
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
-    slice_dim = 0 if dim == "2D" else None
 
-    epochs = 3
+    epochs = 50
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "slice_selection"
-    experiment_notes = {"notes": f"Test multi-feature map"}
+    experiment = "fm_combinations"
+    experiment_notes = {"notes": f"Testing different feature map combinations for {target} prediction. FMs: {feature_maps}. Using Adam default learning rate."}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -83,7 +85,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    train_set, val_set, test_set = create_data_sets(feature_maps, target, dim, slice_dim)
+    train_set, val_set, test_set = create_data_sets(feature_maps, target, dim)
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
     )
@@ -93,7 +95,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     if model_type == "ConvBranch":
         model = ModelFactory(task=task, dim=dim).create_conv_branch(input_shape=train_set.data_shape)
     elif model_type == "ResNet18":
-        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=1)
+        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=len(feature_maps))
     else:
         raise ValueError("Model type not supported. Check the model_type argument.")
 
@@ -168,7 +170,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         lightning_model.eval()
 
 
-def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = None):
+def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = 0):
     """Create a data set for training."""
     # Prepare data sets and loaders
     ds_config = DataSetConfig(

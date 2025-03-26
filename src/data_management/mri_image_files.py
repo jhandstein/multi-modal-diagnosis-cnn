@@ -1,5 +1,5 @@
 # https://lukas-snoek.com/NI-edu/fMRI-introduction/week_1/python_for_mri.html
-import gc
+from typing import Literal
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -19,7 +19,7 @@ class MriImageFile:
     """
     Class to handle the loading of image / feature map files from the NAKO dataset
     """
-
+ 
     def __init__(self, subject_id: int, feature_map: FeatureMapType, middle_slice: bool = True, slice_dim: int | None = 0):
         self.subject_id = subject_id
         self.token = f"sub-{subject_id}"
@@ -30,13 +30,16 @@ class MriImageFile:
     @property
     def file_path(self) -> Path:
         """Returns the path to the feature map file"""
-        # TODO: refine selection of paths (implement switch case)
+        # TODO: refine selection of paths (implement switch case?)
         if self.feature_map.modality == ModalityType.ANAT:
             return self._get_anat_path()
         elif self.feature_map.modality == ModalityType.FUNC:
             return self._get_func_path()
         elif self.feature_map.modality == ModalityType.RAW:
-            return self._get_smri_path()
+            if self.feature_map == FeatureMapType.SMRI:
+                return self._get_smri_path()
+            elif self.feature_map == FeatureMapType.FMRI:
+                return self._get_fmri_path()
         else:
             raise ValueError("Invalid scan type")
         
@@ -48,6 +51,11 @@ class MriImageFile:
         slice_suffix = f"dim_{self.slice_dim}" if self.middle_slice else ""
         file_name = f"{self.feature_map.label}_{slice_suffix}.{file_suffix}" 
         return Path(DL_CACHE_PATH, data_dim, self.token, file_name)
+    
+    @classmethod
+    def delete_cache(cls, data_dim: Literal["2D", "3D"]) -> None:
+        """Deletes the cached directory for the specified data dimension"""
+        Path(DL_CACHE_PATH, data_dim).rmdir()
 
     def load_as_tensor(self) -> torch.Tensor:
         """Loads the feature map file as a torch tensor
@@ -98,7 +106,7 @@ class MriImageFile:
         
         # Add a channel dimension
         t = t.unsqueeze_(0)
-        # Cache the tensor
+        # Cache the tensor (only for 2D slices)
         if self.middle_slice:
             np.save(self.cache_path, t.numpy())
         return t
@@ -135,5 +143,11 @@ class MriImageFile:
         return Path(
             FMRI_PREP_FULL_SAMPLE,
             f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz"
+        )
+    
+    def _get_fmri_path(self) -> Path:
+        return Path(
+            FMRI_PREP_FULL_SAMPLE,
+            f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz"
         )
     
