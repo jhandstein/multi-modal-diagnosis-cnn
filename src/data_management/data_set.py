@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import torch
 from torch.utils.data import Dataset
 
@@ -9,12 +9,12 @@ from src.utils.load_targets import extract_target
 
 @dataclass
 class DataSetConfig:
-    feature_map: FeatureMapType = FeatureMapType.GM
+    feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
     target: str = "sex"
     middle_slice: bool = True
     slice_dim: int | None = 0
     
-class NakoSingleFeatureDataset(Dataset):
+class NakoSingleModalityDataset(Dataset):
     """PyTorch Dataset class for the NAKO dataset and its MRI feature maps"""
 
     def __init__(
@@ -25,14 +25,16 @@ class NakoSingleFeatureDataset(Dataset):
         self.subject_ids = subject_ids
         self.target = ds_config.target
         self.labels = extract_target(ds_config.target, subject_ids)
-        self.feature_map = ds_config.feature_map
+        self.feature_maps = ds_config.feature_maps
         self.middle_slice = ds_config.middle_slice
         self.slice_dim = ds_config.slice_dim
 
         # Get shape of one sample (without channel dimension)
-        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_map, self.middle_slice, self.slice_dim).get_size()
+        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_maps[0], self.middle_slice, self.slice_dim).get_size()
 
-        if ds_config.feature_map.label == "smri":
+        if "smri" in [fm.label for fm in ds_config.feature_maps]:
+            if not self.middle_slice:
+                raise ValueError("Normalization is only supported for 2D data yet!")
             self.normalizer = MriImageNormalizer(data_dim="2D")
             self.normalizer.load_normalization_params()
 
@@ -42,14 +44,21 @@ class NakoSingleFeatureDataset(Dataset):
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
         # Load the feature map as a tensor
-        image_file = MriImageFile(subject_id, self.feature_map, self.middle_slice, self.slice_dim)
-        feature_tensor = image_file.load_as_tensor()
-        if self.feature_map.label == "smri":
-            feature_tensor = self.normalizer.transform(feature_tensor)
+        feature_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.feature_maps]
+        feature_tensor = torch.cat(feature_tensors, dim=0)
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return feature_tensor, label
+    
+    def _load_feature_tensor(self, subject_id: int, feature_map: FeatureMapType):
+        """Load a feature map as a tensor"""
+        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim)
+        feature_tensor = image_file.load_as_tensor()
+        if feature_map.label == "smri":
+            feature_tensor = self.normalizer.transform(feature_tensor)
+        return feature_tensor
 
+# TODO: Remove this or move to normalization.py
 def compute_normalization_params(train_dataset):
     """Compute mean and std of the training set after min-max scaling"""
     means = []

@@ -29,7 +29,7 @@ def estimate_initial_learning_rate():
     data_split_path = AGE_SEX_BALANCED_10K_PATH
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
-        feature_map=FeatureMapType.GM,
+        feature_maps=[FeatureMapType.GM],
         target=target,
         middle_slice=False
     )

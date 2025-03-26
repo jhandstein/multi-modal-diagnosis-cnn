@@ -12,7 +12,7 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import DataSetConfig, NakoSingleFeatureDataset
+from src.data_management.data_set import DataSetConfig, NakoSingleModalityDataset
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
@@ -26,11 +26,11 @@ from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 from src.utils.file_dimensions import get_folder_size
 
 
-def create_data_sets(feature_map: FeatureMapType, target: str, dim: str, slice_dim: int = None):
+def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = None):
     """Create a data set for training."""
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
-        feature_map=feature_map,
+        feature_maps=feature_maps,
         target=target,
         middle_slice=True if dim == "2D" else False,
         slice_dim=slice_dim if dim == "2D" else None,    )
@@ -118,11 +118,9 @@ if __name__ == "__main__":
     # time_tensor_loading()
     # check_mri_intensities()
 
-    train_set, val_set, test_set = create_data_sets(FeatureMapType.SMRI, "sex", "2D", slice_dim=0)
+    # train_set, val_set, test_set = create_data_sets([FeatureMapType.SMRI], "sex", "2D", slice_dim=0)
     # print(len(train_set), len(val_set), len(test_set))
     # norm = MriImageNormalizer()
     # norm.fit(test_set)
     # print(norm.mean, norm.std)
-
-    print(train_set[15][0].shape)
-    print("Min and max:", train_set[0][0].min(), train_set[0][0].max())
+    get_folder_size("/ritter/share/data/NAKO/deep_learning_cache/2D")

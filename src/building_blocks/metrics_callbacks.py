@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 
-from src.data_management.data_set import NakoSingleFeatureDataset
+from src.data_management.data_set import NakoSingleModalityDataset
 
 class ExperimentStartCallback(Callback):
     """Logs the start of the training process with the provided parameters in console"""
@@ -62,9 +62,9 @@ class ExperimentSetupLogger(Callback):
     def __init__(
         self,
         logger=None,
-        train_set: NakoSingleFeatureDataset = None,
-        val_set: NakoSingleFeatureDataset = None,
-        test_set: NakoSingleFeatureDataset = None,
+        train_set: NakoSingleModalityDataset = None,
+        val_set: NakoSingleModalityDataset = None,
+        test_set: NakoSingleModalityDataset = None,
         print_collection_dict={},
     ):
         self.logger = logger
@@ -72,8 +72,8 @@ class ExperimentSetupLogger(Callback):
         
         # Store dataset indices
         self.dataset_info = {
-            "modality": train_set.feature_map.modality_label if train_set else None,
-            "feature_map": train_set.feature_map.label if train_set else None,
+            "modality": train_set.feature_maps[0].modality_label if train_set else None,
+            "feature_maps": [fm.label for fm in train_set.feature_maps] if train_set else None,
             "len_train": len(train_set) if train_set else None,
             "len_val": len(val_set) if val_set else None,
             "len_test": len(test_set) if test_set else None,

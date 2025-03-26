@@ -1,4 +1,4 @@
-from src.data_management.data_set import DataSetConfig, NakoSingleFeatureDataset
+from src.data_management.data_set import DataSetConfig, NakoSingleModalityDataset
 
 
 class DataSetFactory:
@@ -11,7 +11,7 @@ class DataSetFactory:
     def create_data_sets(
         self,
     ) -> tuple[
-        NakoSingleFeatureDataset, NakoSingleFeatureDataset, NakoSingleFeatureDataset
+        NakoSingleModalityDataset, NakoSingleModalityDataset, NakoSingleModalityDataset
     ]:
         """Creates the train, validation and test data sets"""
         train_set = self.create_set(self.train_ids)
@@ -20,5 +20,5 @@ class DataSetFactory:
 
         return train_set, val_set, test_set
 
-    def create_set(self, ids) -> NakoSingleFeatureDataset:
-        return NakoSingleFeatureDataset(ids, self.config)
+    def create_set(self, ids) -> NakoSingleModalityDataset:
+        return NakoSingleModalityDataset(ids, self.config)

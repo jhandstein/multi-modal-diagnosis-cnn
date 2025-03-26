@@ -42,21 +42,21 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
+    task = "regression" # "classification" "regression"
     dim = "2D"
-    feature_map = FeatureMapType.SMRI
+    feature_maps = [FeatureMapType.GM]
     target = "sex" if task == "classification" else "age"
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
-    slice_dim = 2 if dim == "2D" else None
+    slice_dim = 0 if dim == "2D" else None
 
-    epochs = 30
+    epochs = 3
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
     experiment = "slice_selection"
-    experiment_notes = {"notes": f"Slice dimension: {slice_dim}. classification"}
+    experiment_notes = {"notes": f"Test multi-feature map"}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -64,7 +64,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         "Run Prefix": prefix,
         "Model Type": model_type,
         "Data Dimension": dim,
-        "Feature Map": feature_map.label,
+        "Feature Maps": [fm.label for fm in feature_maps],
         "Target": target,
         "Task": task,
         "Epochs": epochs,
@@ -83,7 +83,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    train_set, val_set, test_set = create_data_sets(feature_map, target, dim, slice_dim)
+    train_set, val_set, test_set = create_data_sets(feature_maps, target, dim, slice_dim)
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
     )
@@ -168,11 +168,11 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         lightning_model.eval()
 
 
-def create_data_sets(feature_map: FeatureMapType, target: str, dim: str, slice_dim: int = None):
+def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = None):
     """Create a data set for training."""
     # Prepare data sets and loaders
     ds_config = DataSetConfig(
-        feature_map=feature_map,
+        feature_maps=feature_maps,
         target=target,
         middle_slice=True if dim == "2D" else False,
         slice_dim=slice_dim if dim == "2D" else None,    )
