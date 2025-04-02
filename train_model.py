@@ -43,9 +43,9 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     task = "regression" # "classification" "regression"
     dim = "2D"
     anat_feature_maps = [
-        FeatureMapType.GM, 
+        # FeatureMapType.GM, 
         # FeatureMapType.WM, 
-        # FeatureMapType.CSF,
+        FeatureMapType.CSF,
         # FeatureMapType.SMRI
     ]
     func_feature_maps = [
@@ -56,7 +56,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     target = "sex" if task == "classification" else "age"
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
-    epochs = 10
+    epochs = 40
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
     learning_rate = 1e-3 # mr_lr = lr * 25
@@ -160,7 +160,6 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
         accumulate_grad_batches=accumulate_grad_batches,
-        strategy="ddp_find_unused_parameters_true" if dual_modality else "ddp", # TODO: Explore whether there are unused parameters not connected to the computation graph for dual modality
     )
     trainer = L.Trainer(
         **trainer_config.dict(), 

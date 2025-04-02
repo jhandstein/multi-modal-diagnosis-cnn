@@ -52,7 +52,5 @@ class ModelFactory:
         if not fusion_model_class:
             raise ValueError("Fusion model variant not supported. Check the task and dim arguments.")
             
-        anat_branch = self.create_resnet18(anat_channels)
-        func_branch = self.create_resnet18(func_channels)
-        
-        return fusion_model_class(anat_branch, func_branch)
+        return fusion_model_class(anat_channels, func_channels)
+    

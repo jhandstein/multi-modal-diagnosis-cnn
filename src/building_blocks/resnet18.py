@@ -92,10 +92,11 @@ class ResNet18Regression2d(ResNet18Base2d):
 
 
 class ResNet18DualModality2dBase(nn.Module):
-    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
+    def __init__(self, anat_channels: int, func_channels: int):
         super(ResNet18DualModality2dBase, self).__init__()
-        self.anat_branch = anat_branch
-        self.func_branch = func_branch
+        # Create base models without fc layers
+        self.anat_branch = ResNet18Base2d(in_channels=anat_channels)
+        self.func_branch = ResNet18Base2d(in_channels=func_channels)
 
     def forward_branches(self, x1, x2):
         out1 = self.anat_branch.forward_convolution(x1)
@@ -103,8 +104,8 @@ class ResNet18DualModality2dBase(nn.Module):
         return torch.cat((out1, out2), dim=1)
     
 class ResNet18Binary2dDualModality(ResNet18DualModality2dBase):
-    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
-        super().__init__(anat_branch, func_branch)
+    def __init__(self, anat_channels: int, func_channels: int):
+        super().__init__(anat_channels, func_channels)
         self.fc = nn.Linear(512 * 2, 1)
         self.sigmoid = nn.Sigmoid()
 
@@ -114,10 +115,9 @@ class ResNet18Binary2dDualModality(ResNet18DualModality2dBase):
         out = self.sigmoid(out)
         return out.view(-1)
 
-
 class ResNet18Regression2dDualModality(ResNet18DualModality2dBase):
-    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
-        super().__init__(anat_branch, func_branch)
+    def __init__(self, anat_channels: int, func_channels: int):
+        super().__init__(anat_channels, func_channels)
         self.fc = nn.Linear(512 * 2, 1)
 
     def forward(self, x1, x2):
