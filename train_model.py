@@ -10,21 +10,20 @@ from lightning.pytorch.callbacks import LearningRateMonitor
 
 from src.building_blocks.model_factory import ModelFactory
 from src.building_blocks.lightning_configs import LightningTrainerConfig
-from src.building_blocks.lightning_wrapper import LightningWrapperCnn, OneCycleWrapper
+from src.building_blocks.lightning_wrapper import MultiModalityWrapper, OneCycleWrapper
 from src.building_blocks.metrics_callbacks import (
     ExperimentSetupLogger,
     ExperimentStartCallback,
     TrainingProgressTracker,
     ValidationPrintCallback,
 )
-from src.data_management.data_set import DataSetConfig
+from src.data_management.data_set import BaseDataSetConfig
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import infer_batch_size, infer_gpu_count, prepare_standard_data_loaders
 from src.data_management.data_set_factory import DataSetFactory
 from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
-    AGE_SEX_BALANCED_1K_PATH,
     FeatureMapType,
 )
 from src.utils.cuda_utils import allocated_free_gpus, check_cuda, calculate_model_size
@@ -41,24 +40,30 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
+    task = "regression" # "classification" "regression"
     dim = "2D"
-    feature_maps = [
-        # FeatureMapType.GM, 
-        FeatureMapType.WM, 
-        FeatureMapType.CSF
+    anat_feature_maps = [
+        FeatureMapType.GM, 
+        # FeatureMapType.WM, 
+        # FeatureMapType.CSF,
+        # FeatureMapType.SMRI
     ]
+    func_feature_maps = [
+        FeatureMapType.REHO,
+    ]
+    dual_modality = True if len(anat_feature_maps) > 0 and len(func_feature_maps) > 0 else False
+    feature_maps = anat_feature_maps + func_feature_maps
     target = "sex" if task == "classification" else "age"
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
-    epochs = 50
+    epochs = 10
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
     # todo: derive learning rate dynamically from dict / utility function
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "fm_combinations"
-    experiment_notes = {"notes": f"Testing different feature map combinations for {target} prediction. FMs: {feature_maps}. Using Adam default learning rate."}
+    experiment = "dual_modality"
+    experiment_notes = {"notes": f"Testing dual modality for the first time. FMs: {[fm.label for fm in feature_maps]}."}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -85,27 +90,47 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         log_dir = Path("models_test")
 
     # Prepare data sets and loaders
-    train_set, val_set, test_set = create_data_sets(feature_maps, target, dim)
+    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+
+    base_config = BaseDataSetConfig(
+        target=target,
+        middle_slice=True if dim == "2D" else False,
+        slice_dim=0 if dim == "2D" else None,    
+        )
+    
+    train_set, val_set, test_set = DataSetFactory(
+        train_ids=data_split["train"], 
+        val_ids=data_split["val"], 
+        test_ids=data_split["test"],
+        base_config=base_config,
+        anat_feature_maps=anat_feature_maps,
+        func_feature_maps=func_feature_maps
+    ).create_data_sets()
+
     train_loader = prepare_standard_data_loaders(
         train_set, batch_size=batch_size
     )
     val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
 
-    # Setup model
-    if model_type == "ConvBranch":
-        model = ModelFactory(task=task, dim=dim).create_conv_branch(input_shape=train_set.data_shape)
-    elif model_type == "ResNet18":
-        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=len(feature_maps))
+    #! ConvBranch is not supported for now
+    # Create model according to the feature maps
+    if dual_modality:
+        model = ModelFactory(task=task, dim=dim).create_resnet_multi_modal(
+            anat_channels=len(anat_feature_maps),
+            func_channels=len(func_feature_maps)
+        )
     else:
-        raise ValueError("Model type not supported. Check the model_type argument.")
+        feature_maps = anat_feature_maps or func_feature_maps
+        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=len(feature_maps))
 
     print_collection_dict["Model Size"] = calculate_model_size(model)
 
     # Setup lightning wrapper
-    # lightning_wrapper = LightningWrapperCnn(
-    #     model=model, task=task, learning_rate=learning_rate
-    # )
-    lightning_wrapper = OneCycleWrapper(
+    if dual_modality:
+        wrapper_class = MultiModalityWrapper
+    else:
+        wrapper_class = OneCycleWrapper
+    lightning_wrapper = wrapper_class(
         model=model, task=task, learning_rate=learning_rate
     )
 
@@ -135,6 +160,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         max_epochs=epochs,
         deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
         accumulate_grad_batches=accumulate_grad_batches,
+        strategy="ddp_find_unused_parameters_true" if dual_modality else "ddp", # TODO: Explore whether there are unused parameters not connected to the computation graph for dual modality
     )
     trainer = L.Trainer(
         **trainer_config.dict(), 
@@ -159,30 +185,16 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
 
     # TODO: Test model
     def test_model():
-        checkpoint_path = Path(
-            "models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt"
-        )
-        lightning_model = LightningWrapperCnn.load_from_checkpoint(
-            checkpoint_path
-        )
+        # checkpoint_path = Path(
+        #     "models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt"
+        # )
+        # lightning_model = LightningWrapperCnn.load_from_checkpoint(
+        #     checkpoint_path
+        # )
 
-        # Set model into evaluation mode
-        lightning_model.eval()
-
-
-def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = 0):
-    """Create a data set for training."""
-    # Prepare data sets and loaders
-    ds_config = DataSetConfig(
-        feature_maps=feature_maps,
-        target=target,
-        middle_slice=True if dim == "2D" else False,
-        slice_dim=slice_dim if dim == "2D" else None,    )
-    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
-    
-    return DataSetFactory(
-        data_split["train"], data_split["val"], data_split["test"], ds_config
-    ).create_data_sets()
+        # # Set model into evaluation mode
+        # lightning_model.eval()
+        pass
 
 
 def setup_parser() -> argparse.ArgumentParser:

@@ -4,7 +4,8 @@ from pathlib import Path
 from datetime import datetime
 import json
 
-from src.data_management.data_set import NakoSingleModalityDataset
+from src.data_management.data_set import NakoMultiModalityDataset, NakoSingleModalityDataset
+from src.utils.process_metrics import get_modality_and_features
 
 class ExperimentStartCallback(Callback):
     """Logs the start of the training process with the provided parameters in console"""
@@ -62,9 +63,9 @@ class ExperimentSetupLogger(Callback):
     def __init__(
         self,
         logger=None,
-        train_set: NakoSingleModalityDataset = None,
-        val_set: NakoSingleModalityDataset = None,
-        test_set: NakoSingleModalityDataset = None,
+        train_set: NakoSingleModalityDataset | NakoMultiModalityDataset = None,
+        val_set: NakoSingleModalityDataset | NakoMultiModalityDataset = None,
+        test_set: NakoSingleModalityDataset | NakoMultiModalityDataset = None,
         print_collection_dict={},
     ):
         self.logger = logger
@@ -72,8 +73,6 @@ class ExperimentSetupLogger(Callback):
         
         # Store dataset indices
         self.dataset_info = {
-            "modality": train_set.feature_maps[0].modality_label if train_set else None,
-            "feature_maps": [fm.label for fm in train_set.feature_maps] if train_set else None,
             "len_train": len(train_set) if train_set else None,
             "len_val": len(val_set) if val_set else None,
             "len_test": len(test_set) if test_set else None,
@@ -81,6 +80,11 @@ class ExperimentSetupLogger(Callback):
             "val_indices": val_set.subject_ids if val_set else None,
             "test_indices": test_set.subject_ids if test_set else None,
         }
+
+        # Handle both single and multi-modality datasets
+        if train_set:
+            modality, features = get_modality_and_features(train_set)
+            self.dataset_info.update({"modality": modality, **features}) 
 
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):

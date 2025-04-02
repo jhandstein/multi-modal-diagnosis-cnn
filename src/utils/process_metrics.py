@@ -1,6 +1,8 @@
 from pathlib import Path
 import pandas as pd
 
+from src.data_management.data_set import NakoMultiModalityDataset, NakoSingleModalityDataset
+
 
 def format_metrics_file(csv_path: Path) -> pd.DataFrame:
     """Process metrics CSV file to combine matching epochs and round values.
@@ -31,3 +33,29 @@ def format_metrics_file(csv_path: Path) -> pd.DataFrame:
     df.to_csv(out_path, index=False)
 
     return df
+
+
+def get_modality_and_features(dataset: NakoSingleModalityDataset | NakoMultiModalityDataset):
+    """Extract modality and feature information from both single and multi-modality datasets.
+    
+    Args:
+        dataset: Either SingleModalityDataset or MultiModalityDataset
+        
+    Returns:
+        tuple: (modality_label, feature_dict)
+        - modality_label: str - either specific modality or "anat-func"
+        - feature_dict: dict - contains feature maps based on dataset type
+    """
+    if hasattr(dataset, "feature_maps"):  # SingleModalityDataset
+        return (
+            dataset.feature_maps[0].modality_label,
+            {"feature_maps": [fm.label for fm in dataset.feature_maps]}
+        )
+    else:  # MultiModalityDataset
+        return (
+            "anat-func",
+            {
+                "anatomical_maps": [fm.label for fm in dataset.anatomical_maps],
+                "functional_maps": [fm.label for fm in dataset.functional_maps]
+            }
+        )

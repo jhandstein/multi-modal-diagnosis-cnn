@@ -5,7 +5,7 @@ from torch import optim, nn
 import torch
 
 from src.building_blocks.custom_model import BaseConvBranch2d, BaseConvBranch3d
-from src.building_blocks.resnet18 import ResNet18Base2d
+from src.building_blocks.resnet18 import ResNet18Base2d, ResNet18Binary2dDualModality, ResNet18Regression2dDualModality
 from src.building_blocks.torchmetrics import MetricsFactory
 
 
@@ -172,3 +172,50 @@ class OneCycleWrapper(LightningWrapperCnn):
                 "interval": "step", # Important!
             }
         }
+
+# TODO: Implement the multi-modality wrapper properly
+class MultiModalityWrapper(OneCycleWrapper):
+    def __init__(
+        self, model: ResNet18Binary2dDualModality | ResNet18Regression2dDualModality, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+    ):
+        super().__init__(model, task, learning_rate)
+
+    def training_step(self, batch, batch_idx):
+        # Unpack the dual modality batch
+        (x1, x2), y = batch
+        y_hat = self.model(x1, x2)
+        loss = self.loss_func(y_hat, y)
+        
+        # Log all metrics
+        metrics_dict = {
+            "train_loss": loss,
+            **self.train_metrics(y, y_hat)
+        }
+        self.log_dict(metrics_dict, **self.logging_params)
+
+        # Log current learning rate
+        current_lr = self.optimizers().param_groups[0]['lr']
+        self.log("learning_rate", current_lr, **self.logging_params)
+
+        # TODO: Remove later
+        self.epoch_samples["train"] += len(y)
+        
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        # Unpack the dual modality batch
+        (x1, x2), y = batch
+        y_hat = self.model(x1, x2)
+        loss = self.loss_func(y_hat, y)
+        
+        # Log all metrics
+        metrics_dict = {
+            "val_loss": loss,
+            **self.val_metrics(y, y_hat)
+        }
+        self.log_dict(metrics_dict, **self.logging_params)
+
+        # TODO: Remove later
+        self.epoch_samples["val"] += len(y)
+        
+        return loss

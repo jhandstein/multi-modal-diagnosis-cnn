@@ -14,7 +14,6 @@ from src.utils.config import (
     ModalityType,
 )
 
-
 class MriImageFile:
     """
     Class to handle the loading of image / feature map files from the NAKO dataset
@@ -54,18 +53,35 @@ class MriImageFile:
     
     @classmethod
     def delete_cache(cls, data_dim: Literal["2D", "3D"]) -> None:
-        """Deletes the cached directory for the specified data dimension"""
-        Path(DL_CACHE_PATH, data_dim).rmdir()
+        """Deletes the cached directory for the specified data dimension and all its contents
+        
+        Args:
+            data_dim: Either "2D" or "3D" to specify which cache to delete
+        """
+        import subprocess
+        cache_dir = Path(DL_CACHE_PATH, data_dim)
+        if cache_dir.exists():
+            try:
+                subprocess.run(['rm', '-rf', str(cache_dir)], check=True)
+                print(f"Cache for {data_dim} deleted.")
+            except subprocess.CalledProcessError as e:
+                print(f"Error deleting cache: {e}")
+        else:
+            print(f"No cache directory found for {data_dim}")
+
+    @classmethod
+    def check_cache_size(cls, data_dim: Literal["2D", "3D"]) -> None:
+        """Checks the size of the cached directory for the specified data dimension"""
+        # Try to prevent circular imports
+        from src.utils.file_dimensions import get_folder_size
+        get_folder_size(Path(DL_CACHE_PATH, data_dim))
 
     def load_as_tensor(self) -> torch.Tensor:
         """Loads the feature map file as a torch tensor
         
-        Args:
-            middle_slice (bool): If True, extracts the middle slice from the specified dimension
-        
         Returns:
             torch.tensor: The loaded tensor with shape (1, dim1, dim2) where dim1 and dim2
-                        depend on which dimension was sliced or (1, dim1, dim2, dim3) if no slice
+                        depend on which dimension was sliced or (1, dim1, dim2, dim3) if not slice
         """
 
         # Check if the tensor is already cached

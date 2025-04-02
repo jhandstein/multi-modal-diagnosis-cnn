@@ -7,12 +7,11 @@ from src.data_management.mri_image_files import MriImageFile
 from src.data_management.normalization import MriImageNormalizer
 from src.plots.plot_mri_slice import plot_mri_slice
 from src.plots.plot_metrics import plot_all_metrics
-from src.building_blocks.lightning_wrapper import LightningWrapperCnn
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.plot_age_range import plot_age_range
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import DataSetConfig, NakoSingleModalityDataset
+from src.data_management.data_set import SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
@@ -23,22 +22,7 @@ from src.testing._250131_first_data_splits import create_balanced_samples
 from src.utils.file_path_helper import construct_model_name
 from src.utils.process_metrics import format_metrics_file
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
-from src.utils.file_dimensions import get_folder_size
 
-
-def create_data_sets(feature_maps: list[FeatureMapType], target: str, dim: str, slice_dim: int = None):
-    """Create a data set for training."""
-    # Prepare data sets and loaders
-    ds_config = DataSetConfig(
-        feature_maps=feature_maps,
-        target=target,
-        middle_slice=True if dim == "2D" else False,
-        slice_dim=slice_dim if dim == "2D" else None,    )
-    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
-    
-    return DataSetFactory(
-        data_split["train"], data_split["val"], data_split["test"], ds_config
-    ).create_data_sets()
 
 def find_lr():
     sug_rate = estimate_initial_learning_rate()
@@ -85,9 +69,3 @@ if __name__ == "__main__":
     # plot_metrics_when_failed_during_training()
     # plot_mri_slices()
     # check_mri_intensities()
-
-    # train_set, val_set, test_set = create_data_sets([FeatureMapType.SMRI], "sex", "2D", slice_dim=0)
-    # print(len(train_set), len(val_set), len(test_set))
-    # print(train_set.data_shape)
-    # print(train_set[0][0].shape)
-    # print(train_set[0][0].min(), train_set[0][0].max())

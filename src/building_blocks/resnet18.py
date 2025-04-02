@@ -1,4 +1,5 @@
 from torch import nn
+import torch
 
 
 class BasicBlock2d(nn.Module):
@@ -88,7 +89,42 @@ class ResNet18Regression2d(ResNet18Base2d):
         out = self.forward_convolution(x)
         out = self.fc(out)
         return out.view(-1)
+
+
+class ResNet18DualModality2dBase(nn.Module):
+    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
+        super(ResNet18DualModality2dBase, self).__init__()
+        self.anat_branch = anat_branch
+        self.func_branch = func_branch
+
+    def forward_branches(self, x1, x2):
+        out1 = self.anat_branch.forward_convolution(x1)
+        out2 = self.func_branch.forward_convolution(x2)
+        return torch.cat((out1, out2), dim=1)
     
+class ResNet18Binary2dDualModality(ResNet18DualModality2dBase):
+    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
+        super().__init__(anat_branch, func_branch)
+        self.fc = nn.Linear(512 * 2, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x1, x2):
+        out = self.forward_branches(x1, x2)
+        out = self.fc(out)
+        out = self.sigmoid(out)
+        return out.view(-1)
+
+
+class ResNet18Regression2dDualModality(ResNet18DualModality2dBase):
+    def __init__(self, anat_branch: ResNet18Base2d, func_branch: ResNet18Base2d):
+        super().__init__(anat_branch, func_branch)
+        self.fc = nn.Linear(512 * 2, 1)
+
+    def forward(self, x1, x2):
+        out = self.forward_branches(x1, x2)
+        out = self.fc(out)
+        return out.view(-1)
+  
     
 class BasicBlock3d(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):

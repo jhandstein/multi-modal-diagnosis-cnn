@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import DataSetConfig, NakoSingleModalityDataset
+from src.data_management.data_set import NakoSingleModalityDataset, SingleModalityDataSetConfig
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     AGE_SEX_BALANCED_1K_PATH,
@@ -11,7 +11,7 @@ from src.utils.config import (
 
 
 def plot_age_range():
-    ds_config = DataSetConfig(
+    ds_config = SingleModalityDataSetConfig(
         feature_maps=[FeatureMapType.GM],
         target="age",
         middle_slice=True

@@ -8,7 +8,7 @@ from src.building_blocks.model_factory import ModelFactory
 from src.building_blocks.lightning_wrapper import LightningWrapperCnn
 from src.data_management.create_data_split import DataSplitFile
 from src.data_management.data_loader import infer_batch_size, prepare_standard_data_loaders
-from src.data_management.data_set import DataSetConfig
+from src.data_management.data_set import SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import AGE_SEX_BALANCED_10K_PATH, PLOTS_PATH, FeatureMapType
 from src.utils.cuda_utils import calculate_model_size
@@ -28,7 +28,8 @@ def estimate_initial_learning_rate():
 
     data_split_path = AGE_SEX_BALANCED_10K_PATH
     # Prepare data sets and loaders
-    ds_config = DataSetConfig(
+    #? does it already work with multi-modality?
+    ds_config = SingleModalityDataSetConfig(
         feature_maps=[FeatureMapType.GM],
         target=target,
         middle_slice=False
@@ -36,7 +37,11 @@ def estimate_initial_learning_rate():
     data_split = DataSplitFile(data_split_path).load_data_splits_from_file()
     
     train_set, val_set, test_set = DataSetFactory(
-        data_split["train"], data_split["val"], data_split["test"], ds_config
+        data_split["train"], 
+        data_split["val"], 
+        data_split["test"], 
+        ds_config,
+        anat_feature_maps=[FeatureMapType.GM],
     ).create_data_sets()
 
     train_loader = prepare_standard_data_loaders(
@@ -71,7 +76,6 @@ def estimate_initial_learning_rate():
     # Run learning rate finder
     tuner = Tuner(trainer)
     lr_finder = tuner.lr_find(lightning_wrapper, train_dataloaders=train_loader, val_dataloaders=val_loader)
-    # TODO: Add batch size finder
 
     # Get suggestion and adjust it
     suggested_lr = lr_finder.suggestion()

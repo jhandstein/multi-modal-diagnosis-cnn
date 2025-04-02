@@ -8,42 +8,75 @@ from src.utils.config import FeatureMapType
 from src.utils.load_targets import extract_target
 
 @dataclass
-class DataSetConfig:
-    feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
+class BaseDataSetConfig:
+    # feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
     target: str = "sex"
     middle_slice: bool = True
     slice_dim: int | None = 0
-    
-class NakoSingleModalityDataset(Dataset):
-    """PyTorch Dataset class for the NAKO dataset and its MRI feature maps"""
+
+@dataclass
+class SingleModalityDataSetConfig(BaseDataSetConfig):
+    feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
+
+@dataclass
+class MultiModalityDataSetConfig(BaseDataSetConfig):
+    anatomical_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
+    functional_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.REHO])
+
+class BaseNakoDataset(Dataset):
+    """Base class for NAKO dataset that an acts as a template for other datasets"""
 
     def __init__(
         self,
-        subject_ids: int,
-        ds_config: DataSetConfig
+        subject_ids: list[int],
+        ds_config: BaseDataSetConfig
     ):
         self.subject_ids = subject_ids
         self.target = ds_config.target
         self.labels = extract_target(ds_config.target, subject_ids)
-        self.feature_maps = ds_config.feature_maps
         self.middle_slice = ds_config.middle_slice
         self.slice_dim = ds_config.slice_dim
 
-        # Get shape of one sample (without channel dimension)
-        self.data_shape = MriImageFile(self.subject_ids[0], self.feature_maps[0], self.middle_slice, self.slice_dim).get_size()
 
-        if "smri" in [fm.label for fm in ds_config.feature_maps]:
+    def __len__(self):
+        return int(len(self.subject_ids))
+
+    def __getitem__(self, index):
+        raise NotImplementedError("Subclasses should implement this method.")
+    
+    def _load_feature_tensor(self, subject_id: int, feature_map: FeatureMapType):
+        """Load a feature map as a tensor"""
+        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim)
+        feature_tensor = image_file.load_as_tensor()
+        if feature_map.label == "smri":
+            feature_tensor = self.normalizer.transform(feature_tensor)
+        return feature_tensor
+    
+    def _initilize_normalizer(self, feature_maps: list[FeatureMapType]):
+        """Initialize the normalizer for the dataset if required"""
+        if "smri" in [fm.label for fm in feature_maps]:
             if not self.middle_slice:
                 raise ValueError("Normalization is only supported for 2D data yet!")
             self.normalizer = MriImageNormalizer(data_dim="2D")
             self.normalizer.load_normalization_params()
 
-    def __len__(self):
-        return int(len(self.subject_ids))
+class NakoSingleModalityDataset(BaseNakoDataset):
+    """PyTorch Dataset class for single modality NAKO data"""
+
+    def __init__(
+        self,
+        subject_ids: list[int],
+        ds_config: SingleModalityDataSetConfig
+    ):
+        super().__init__(subject_ids, ds_config)
+        self.feature_maps = ds_config.feature_maps
+        
+        # Initialize normalizer if needed
+        self._initilize_normalizer(self.feature_maps)
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
-        # Load the feature map as a tensor
+        # Load the feature maps as tensors
         feature_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.feature_maps]
         try:
             feature_tensor = torch.cat(feature_tensors, dim=0)
@@ -53,14 +86,44 @@ class NakoSingleModalityDataset(Dataset):
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return feature_tensor, label
+
+
+class NakoMultiModalityDataset(BaseNakoDataset):
+    """PyTorch Dataset class for multi-modality NAKO data"""
+
+    def __init__(
+        self,
+        subject_ids: list[int],
+        ds_config: MultiModalityDataSetConfig
+    ):
+        super().__init__(subject_ids, ds_config)
+        self.anatomical_maps = ds_config.anatomical_maps
+        self.functional_maps = ds_config.functional_maps
+        
+        # Initialize normalizers if needed
+        self._initilize_normalizer(self.anatomical_maps)
+
+    def __getitem__(self, idx: int):
+        subject_id = self.subject_ids[idx]
+        
+        # Load anatomical maps
+        anat_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.anatomical_maps]
+        try:
+            anat_tensor = torch.cat(anat_tensors, dim=0)
+        except RuntimeError:
+            raise ValueError("Anatomical maps have different shapes. Please check the data.")
+
+        # Load functional maps
+        func_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.functional_maps]
+        try:
+            func_tensor = torch.cat(func_tensors, dim=0)
+        except RuntimeError:
+            raise ValueError("Functional maps have different shapes. Please check the data.")
+
+        # Load the label as a tensor
+        label = torch.tensor(self.labels[subject_id]).float()
+        return (anat_tensor, func_tensor), label
     
-    def _load_feature_tensor(self, subject_id: int, feature_map: FeatureMapType):
-        """Load a feature map as a tensor"""
-        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim)
-        feature_tensor = image_file.load_as_tensor()
-        if feature_map.label == "smri":
-            feature_tensor = self.normalizer.transform(feature_tensor)
-        return feature_tensor
 
 # TODO: Remove this or move to normalization.py
 def compute_normalization_params(train_dataset):
