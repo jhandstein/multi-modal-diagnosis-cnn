@@ -14,13 +14,13 @@ from src.utils.config import (
     NUM_SAMPLES_10K,
     NUM_SAMPLES_1K,
 )
-from src.utils.load_targets import extract_target
+from src.utils.load_targets import extract_targets
 from src.utils.subject_selection import load_subject_ids_from_file
 
 
 def create_balanced_samples():
     hq_fmri_ids = load_subject_ids_from_file(HIGH_QUALITY_FMRI_IDS)
-    hq_fmri_targets = extract_target("sex", hq_fmri_ids)
+    hq_fmri_targets = extract_targets("sex", hq_fmri_ids)
 
     # Create balanced sample of 1k subjects
     balanced_ids_1k = create_balanced_sample(hq_fmri_targets, NUM_SAMPLES_1K)
@@ -46,9 +46,9 @@ def create_balanced_samples():
 
     # load the high quality sMRI indices and the low quality fMRI indices
     hq_smri_ids = load_subject_ids_from_file(HIGH_QUALITY_SMRI_IDS)
-    hq_smri_targets = extract_target("sex", hq_smri_ids)
+    hq_smri_targets = extract_targets("sex", hq_smri_ids)
     lq_fmri_ids = load_subject_ids_from_file(LOW_QUALITY_FMRI_IDS)
-    lq_fmri_targets = extract_target("sex", lq_fmri_ids)
+    lq_fmri_targets = extract_targets("sex", lq_fmri_ids)
     # create overlap between the high quality sMRI and low quality fMRI
     overlap = get_overlapping_subjects(hq_smri_targets, lq_fmri_targets)
 

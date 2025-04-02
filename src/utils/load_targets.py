@@ -11,7 +11,10 @@ NAKO_TARGETS = {
 }
 
 
-def extract_target(target: str, subject_ids: list[int]) -> pd.Series:
+def extract_targets(target: str, subject_ids: list[int]) -> pd.Series:
+    """
+    Extract the target values for the given subject IDs from the NAKO table.
+    """
     nako_table = pd.read_csv(NAKO_TABLE_PATH)
     nako_table.set_index("ID", inplace=True)
     series = nako_table.loc[subject_ids, NAKO_TARGETS[target]]

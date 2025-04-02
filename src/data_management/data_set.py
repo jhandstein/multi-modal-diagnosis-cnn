@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 from src.data_management.normalization import MriImageNormalizer
 from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureMapType
-from src.utils.load_targets import extract_target
+from src.utils.load_targets import extract_targets
 
 @dataclass
 class BaseDataSetConfig:
@@ -33,7 +33,7 @@ class BaseNakoDataset(Dataset):
     ):
         self.subject_ids = subject_ids
         self.target = ds_config.target
-        self.labels = extract_target(ds_config.target, subject_ids)
+        self.labels = extract_targets(ds_config.target, subject_ids)
         self.middle_slice = ds_config.middle_slice
         self.slice_dim = ds_config.slice_dim
 

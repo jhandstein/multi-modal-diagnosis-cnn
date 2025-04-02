@@ -1,5 +1,3 @@
-from time import time
-
 from pathlib import Path
 
 from src.building_blocks.model_factory import ModelFactory
@@ -22,6 +20,7 @@ from src.testing._250131_first_data_splits import create_balanced_samples
 from src.utils.file_path_helper import construct_model_name
 from src.utils.process_metrics import format_metrics_file
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
+from src.utils.performance_evaluation import calc_loss_based_on_target_mean
 
 
 def find_lr():
@@ -69,3 +68,4 @@ if __name__ == "__main__":
     # plot_metrics_when_failed_during_training()
     # plot_mri_slices()
     # check_mri_intensities()
+    calc_loss_based_on_target_mean(label="age")
