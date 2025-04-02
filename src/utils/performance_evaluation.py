@@ -24,12 +24,13 @@ def calc_loss_based_on_target_mean(label: str = "age"):
 
     # Create tensor of same length as targets filled with mean value
     train_mean_tensor = torch.full_like(train_targets, train_mean.item())
+    val_test_mean_tensor = torch.full_like(val_targets, train_mean.item())
     
     # Compute loss only with the train mean tensor
     loss_func = nn.MSELoss()
     train_loss = loss_func(train_targets, train_mean_tensor)
-    val_loss = loss_func(val_targets, train_mean_tensor)
-    test_loss = loss_func(test_targets, train_mean_tensor)
+    val_loss = loss_func(val_targets, val_test_mean_tensor)
+    test_loss = loss_func(test_targets, val_test_mean_tensor)
     print(f"Losses - Train: {train_loss:.4f}, Val: {val_loss:.4f}, Test: {test_loss:.4f}")
         
 
