@@ -35,8 +35,8 @@ class MriImageFile:
         elif self.feature_map.modality == ModalityType.FUNC:
             return self._get_func_path()
         elif self.feature_map.modality == ModalityType.RAW:
-            if self.feature_map == FeatureMapType.SMRI:
-                return self._get_smri_path()
+            if self.feature_map == FeatureMapType.T1:
+                return self._get_t1_path()
             elif self.feature_map == FeatureMapType.FMRI:
                 return self._get_fmri_path()
         else:
@@ -155,7 +155,7 @@ class MriImageFile:
             f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_{self.feature_map.label}.nii.gz",
         )
 
-    def _get_smri_path(self) -> Path:
+    def _get_t1_path(self) -> Path:
         return Path(
             FMRI_PREP_FULL_SAMPLE,
             f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz"

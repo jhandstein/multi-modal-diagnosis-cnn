@@ -27,7 +27,7 @@ AVAILABLE_SUBJECT_IDS = Path(
 
 # IDs for the subjects that have high quality sMRI and fMRI data
 # High quality fMRI also means that sMRI is high quality..?
-HIGH_QUALITY_SMRI_IDS = Path(
+HIGH_QUALITY_T1_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_sMRI_high_quality.tsv",
 )
@@ -59,7 +59,7 @@ class FeatureMapType(Enum):
     """
 
     # raw data (RAW modality)
-    SMRI = ("smri", ModalityType.RAW)
+    T1 = ("T1", ModalityType.RAW)
     FMRI = ("fmri", ModalityType.RAW)
 
     # sMRI maps (ANAT modality)

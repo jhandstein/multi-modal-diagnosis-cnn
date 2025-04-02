@@ -4,7 +4,7 @@ from src.utils.config import FeatureMapType
 
 def raw_and_map_sizes(subject_id: int):
     """Prints the sizes of the raw and mapped feature files for a given subject ID"""
-    fm = MriImageFile(subject_id, FeatureMapType.SMRI)
+    fm = MriImageFile(subject_id, FeatureMapType.T1)
     print(fm.file_path)
     print(fm.print_stats())
     fm2 = MriImageFile(subject_id, FeatureMapType.GM)

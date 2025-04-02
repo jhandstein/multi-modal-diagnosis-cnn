@@ -9,7 +9,7 @@ from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     AGE_SEX_BALANCED_1K_PATH,
     HIGH_QUALITY_FMRI_IDS,
-    HIGH_QUALITY_SMRI_IDS,
+    HIGH_QUALITY_T1_IDS,
     LOW_QUALITY_FMRI_IDS,
     NUM_SAMPLES_10K,
     NUM_SAMPLES_1K,
@@ -45,7 +45,7 @@ def create_balanced_samples():
     partial_hq_draw = create_balanced_sample(hq_fmri_targets, n_hq_samples)
 
     # load the high quality sMRI indices and the low quality fMRI indices
-    hq_smri_ids = load_subject_ids_from_file(HIGH_QUALITY_SMRI_IDS)
+    hq_smri_ids = load_subject_ids_from_file(HIGH_QUALITY_T1_IDS)
     hq_smri_targets = extract_targets("sex", hq_smri_ids)
     lq_fmri_ids = load_subject_ids_from_file(LOW_QUALITY_FMRI_IDS)
     lq_fmri_targets = extract_targets("sex", lq_fmri_ids)

@@ -40,13 +40,13 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
+    task = "classification" # "classification" "regression"
     dim = "2D"
     anat_feature_maps = [
-        # FeatureMapType.GM, 
-        # FeatureMapType.WM, 
+        FeatureMapType.GM, 
+        FeatureMapType.WM, 
         FeatureMapType.CSF,
-        # FeatureMapType.SMRI
+        # FeatureMapType.T1
     ]
     func_feature_maps = [
         FeatureMapType.REHO,
@@ -58,7 +58,6 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
 
     epochs = 40
     batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
-    # todo: derive learning rate dynamically from dict / utility function
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)

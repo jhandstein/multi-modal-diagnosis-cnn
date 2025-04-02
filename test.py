@@ -49,13 +49,13 @@ def plot_metrics_when_failed_during_training():
 def plot_mri_slices():
     """Plot MRI slices for different dimensions and feature maps."""
     for dim in [0, 1, 2]:
-        # for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.SMRI, FeatureMapType.FMRI]:
+        # for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.T1, FeatureMapType.FMRI]:
         #     plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
         plot_mri_slice(100010, slice_dim=dim, feature_map=FeatureMapType.CSF)
 
 
 def check_mri_intensities():
-    mri_file = MriImageFile(100010, FeatureMapType.SMRI, middle_slice=True, slice_dim=0)
+    mri_file = MriImageFile(100010, FeatureMapType.T1, middle_slice=True, slice_dim=0)
     tensor = mri_file.load_as_tensor()
     print(tensor.min(), tensor.max())
     

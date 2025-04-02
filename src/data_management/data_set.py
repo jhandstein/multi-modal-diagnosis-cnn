@@ -48,13 +48,13 @@ class BaseNakoDataset(Dataset):
         """Load a feature map as a tensor"""
         image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim)
         feature_tensor = image_file.load_as_tensor()
-        if feature_map.label == "smri":
+        if feature_map.label == "T1":
             feature_tensor = self.normalizer.transform(feature_tensor)
         return feature_tensor
     
     def _initilize_normalizer(self, feature_maps: list[FeatureMapType]):
         """Initialize the normalizer for the dataset if required"""
-        if "smri" in [fm.label for fm in feature_maps]:
+        if "T1" in [fm.label for fm in feature_maps]:
             if not self.middle_slice:
                 raise ValueError("Normalization is only supported for 2D data yet!")
             self.normalizer = MriImageNormalizer(data_dim="2D")
