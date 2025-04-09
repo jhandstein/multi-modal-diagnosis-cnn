@@ -19,12 +19,13 @@ class MriImageFile:
     Class to handle the loading of image / feature map files from the NAKO dataset
     """
  
-    def __init__(self, subject_id: int, feature_map: FeatureMapType, middle_slice: bool = True, slice_dim: int | None = 0):
+    def __init__(self, subject_id: int, feature_map: FeatureMapType, middle_slice: bool = True, slice_dim: int | None = 0, temporal_process: Literal["mean", "variance", "tsnr"] | None = None):
         self.subject_id = subject_id
         self.token = f"sub-{subject_id}"
         self.feature_map = feature_map
         self.middle_slice = middle_slice
         self.slice_dim = slice_dim if middle_slice else None
+        self.temporal_process = temporal_process if feature_map == FeatureMapType.BOLD else None
 
     @property
     def file_path(self) -> Path:
@@ -37,8 +38,8 @@ class MriImageFile:
         elif self.feature_map.modality == ModalityType.RAW:
             if self.feature_map == FeatureMapType.T1:
                 return self._get_t1_path()
-            elif self.feature_map == FeatureMapType.FMRI:
-                return self._get_fmri_path()
+            elif self.feature_map == FeatureMapType.BOLD:
+                return self._get_bold_path()
         else:
             raise ValueError("Invalid scan type")
         
@@ -48,6 +49,10 @@ class MriImageFile:
         data_dim = "2D" if self.middle_slice else "3D"
         file_suffix = "npy"
         slice_suffix = f"dim_{self.slice_dim}" if self.middle_slice else ""
+        # Add temporal process to the suffix if applicable
+        if self.temporal_process and self.feature_map == FeatureMapType.BOLD:
+            slice_suffix += f"_{self.temporal_process}"
+        # Create the cache path
         file_name = f"{self.feature_map.label}_{slice_suffix}.{file_suffix}" 
         return Path(DL_CACHE_PATH, data_dim, self.token, file_name)
     
@@ -95,37 +100,72 @@ class MriImageFile:
         img = nib.load(self.file_path)
         t = torch.from_numpy(img.get_fdata(dtype=np.float32))
         
+        # Apply temporal processing if specified
+        # TODO: revisit this if logic
+        if self.temporal_process and self.feature_map == FeatureMapType.BOLD:
+            t = self._process_temporal(t)
+
         # Extract the middle slice from the specified dimension
         if self.middle_slice:
-            if self.slice_dim not in [0, 1, 2]:
-                raise ValueError("slice_dim must be 0, 1, or 2")
-            
-            # Select the middle slice using indexing for the specified dimension
-            slice_idx = t.shape[self.slice_dim] // 2
-            if self.slice_dim == 0:
-                t = t[slice_idx]
-            elif self.slice_dim == 1:
-                t = t[:, slice_idx]
-            else:  # slice_dim == 2
-                t = t[:, :, slice_idx]
-
+            t = self._process_2d_tensor(t)
         else:
-            t = t.unsqueeze_(0).unsqueeze_(0)
-            t = F.interpolate(
-                t,
-                scale_factor=0.5,
-                mode='trilinear',
-                align_corners=False
-            )
-            t = t.squeeze_(0).squeeze_(0)
+            t = self._process_3d_tensor(t)
 
-        
+
         # Add a channel dimension
         t = t.unsqueeze_(0)
         # Cache the tensor (only for 2D slices)
         if self.middle_slice:
             np.save(self.cache_path, t.numpy())
         return t
+    
+    def _process_2d_tensor(self, tensor: torch.Tensor) -> torch.Tensor:
+        """Handles processing of 2D tensors"""
+        if self.slice_dim not in [0, 1, 2]:
+            raise ValueError("slice_dim must be 0, 1, or 2")
+        
+        # Select the middle slice using indexing for the specified dimension
+        slice_idx = tensor.shape[self.slice_dim] // 2
+        if self.slice_dim == 0:
+            tensor = tensor[slice_idx]
+        elif self.slice_dim == 1:
+            tensor = tensor[:, slice_idx]
+        else:  # slice_dim == 2
+            tensor = tensor[:, :, slice_idx]
+        return tensor
+    
+    def _process_3d_tensor(self, tensor: torch.Tensor) -> torch.Tensor:
+        """Handles processing of 3D tensors"""
+        tensor = tensor.unsqueeze_(0).unsqueeze_(0)
+        # Scale down image for sMRI modalites
+        if self.feature_map.modality == ModalityType.ANAT or self.feature_map == FeatureMapType.T1:
+            tensor = F.interpolate(
+                tensor,
+                scale_factor=0.5,
+                mode='trilinear',
+                align_corners=False
+            )
+        return tensor.squeeze_(0).squeeze_(0)
+    
+    def _process_temporal(self, tensor: torch.Tensor) -> torch.Tensor:
+        """Process BOLD temporal dimension
+        Args:
+            tensor: Input tensor with shape (x, y, [z,] time)
+        
+        Returns:
+            torch.Tensor: Processed tensor with shape (x, y, [z])
+        """
+        if self.temporal_process == "mean":
+            return torch.mean(tensor, dim=-1)
+        elif self.temporal_process == "variance":
+            return torch.var(tensor, dim=-1)
+        elif self.temporal_process == "tsnr":
+            mean = torch.mean(tensor, dim=-1)
+            std = torch.std(tensor, dim=-1)
+            return mean / (std + 1e-6)  # Add small epsilon to avoid division by zero
+        else:
+            raise ValueError("Invalid temporal process type")
+
 
     def get_size(self) -> tuple:
         """Returns the size of the feature map file"""
@@ -161,7 +201,7 @@ class MriImageFile:
             f"{self.token}/ses-0/anat/{self.token}_ses-0_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz"
         )
     
-    def _get_fmri_path(self) -> Path:
+    def _get_bold_path(self) -> Path:
         return Path(
             FMRI_PREP_FULL_SAMPLE,
             f"{self.token}/ses-0/func/{self.token}_ses-0_task-rest_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz"

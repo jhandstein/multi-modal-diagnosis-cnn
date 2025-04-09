@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.utils.config import NAKO_TABLE_PATH
 
-# refactor this dict approach
+# TODO: refactor this dict approach
 NAKO_TARGETS = {
     "subject_id": "ID",
     "center": "StudZ",

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Literal
 import torch
 from torch.utils.data import Dataset
 
@@ -13,6 +14,7 @@ class BaseDataSetConfig:
     target: str = "sex"
     middle_slice: bool = True
     slice_dim: int | None = 0
+    temporal_process: Literal["mean", "variance", "tsnr"] = None
 
 @dataclass
 class SingleModalityDataSetConfig(BaseDataSetConfig):
@@ -36,6 +38,7 @@ class BaseNakoDataset(Dataset):
         self.labels = extract_targets(ds_config.target, subject_ids)
         self.middle_slice = ds_config.middle_slice
         self.slice_dim = ds_config.slice_dim
+        self.temporal_process = ds_config.temporal_process
 
 
     def __len__(self):
@@ -46,7 +49,7 @@ class BaseNakoDataset(Dataset):
     
     def _load_feature_tensor(self, subject_id: int, feature_map: FeatureMapType):
         """Load a feature map as a tensor"""
-        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim)
+        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim, self.temporal_process)
         feature_tensor = image_file.load_as_tensor()
         if feature_map.label == "T1":
             feature_tensor = self.normalizer.transform(feature_tensor)

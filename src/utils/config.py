@@ -60,7 +60,7 @@ class FeatureMapType(Enum):
 
     # raw data (RAW modality)
     T1 = ("T1", ModalityType.RAW)
-    FMRI = ("fmri", ModalityType.RAW)
+    BOLD = ("bold", ModalityType.RAW)
 
     # sMRI maps (ANAT modality)
     GM = ("GM", ModalityType.ANAT)

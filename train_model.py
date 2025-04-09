@@ -42,18 +42,20 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     # Set parameters for training
     task = "classification" # "classification" "regression"
     dim = "2D"
-    anat_feature_maps = [
-        FeatureMapType.GM, 
-        FeatureMapType.WM, 
-        FeatureMapType.CSF,
+    anat_feature_maps: list[FeatureMapType] = [
+        # FeatureMapType.GM, 
+        # FeatureMapType.WM, 
+        # FeatureMapType.CSF,
         # FeatureMapType.T1
     ]
-    func_feature_maps = [
-        FeatureMapType.REHO,
+    func_feature_maps: list[FeatureMapType] = [
+        # FeatureMapType.REHO,
+        FeatureMapType.BOLD,
     ]
     dual_modality = True if len(anat_feature_maps) > 0 and len(func_feature_maps) > 0 else False
     feature_maps = anat_feature_maps + func_feature_maps
     target = "sex" if task == "classification" else "age"
+    temporal_process = "variance" # "mean", "variance", "tsnr", None
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
     epochs = 40
@@ -61,8 +63,8 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "dual_modality"
-    experiment_notes = {"notes": f"Testing dual modality for the first time. FMs: {[fm.label for fm in feature_maps]}."}
+    experiment = "bold_map"
+    experiment_notes = {"notes": f"Trying BOLD feature map with {temporal_process}."}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -71,6 +73,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         "Model Type": model_type,
         "Data Dimension": dim,
         "Feature Maps": [fm.label for fm in feature_maps],
+        "Temporal Processing": temporal_process,
         "Target": target,
         "Task": task,
         "Epochs": epochs,
@@ -94,7 +97,8 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     base_config = BaseDataSetConfig(
         target=target,
         middle_slice=True if dim == "2D" else False,
-        slice_dim=0 if dim == "2D" else None,    
+        slice_dim=0 if dim == "2D" else None,  
+        temporal_process=temporal_process,  
         )
     
     train_set, val_set, test_set = DataSetFactory(
