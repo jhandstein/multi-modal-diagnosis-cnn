@@ -25,7 +25,7 @@ def cache_data_set(
     # Define the base configuration for the dataset
     base_config = BaseDataSetConfig(
         target="age",
-        temporal_process="mean",
+        temporal_processes=["mean"],
     )
 
     # Create the dataset factory
@@ -59,4 +59,4 @@ def cache_data_set(
             for _ in data_loader:
                 pbar.update(1)
                 
-        print(f"Successfully cached {len(dataset)} samples for {dataset.__class__.__name__} and {base_config.temporal_process} temporal process.")
+        print(f"Successfully cached {len(dataset)} samples for {dataset.__class__.__name__} and {base_config.temporal_processes} temporal process(es).")

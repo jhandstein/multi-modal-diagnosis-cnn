@@ -8,53 +8,66 @@ from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureMapType
 from src.utils.load_targets import extract_targets
 
+
 @dataclass
 class BaseDataSetConfig:
     # feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
     target: str = "sex"
     middle_slice: bool = True
     slice_dim: int | None = 0
-    temporal_process: Literal["mean", "variance", "tsnr"] = None
+    temporal_processes: list[Literal["mean", "variance", "tsnr"]] = None
+
 
 @dataclass
 class SingleModalityDataSetConfig(BaseDataSetConfig):
-    feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
+    feature_maps: list[FeatureMapType] = field(
+        default_factory=lambda: [FeatureMapType.GM]
+    )
+
 
 @dataclass
 class MultiModalityDataSetConfig(BaseDataSetConfig):
-    anatomical_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
-    functional_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.REHO])
+    anatomical_maps: list[FeatureMapType] = field(
+        default_factory=lambda: [FeatureMapType.GM]
+    )
+    functional_maps: list[FeatureMapType] = field(
+        default_factory=lambda: [FeatureMapType.REHO]
+    )
+
 
 class BaseNakoDataset(Dataset):
     """Base class for NAKO dataset that an acts as a template for other datasets"""
 
-    def __init__(
-        self,
-        subject_ids: list[int],
-        ds_config: BaseDataSetConfig
-    ):
+    def __init__(self, subject_ids: list[int], ds_config: BaseDataSetConfig):
         self.subject_ids = subject_ids
         self.target = ds_config.target
         self.labels = extract_targets(ds_config.target, subject_ids)
         self.middle_slice = ds_config.middle_slice
         self.slice_dim = ds_config.slice_dim
-        self.temporal_process = ds_config.temporal_process
-
+        self.temporal_processes = ds_config.temporal_processes
 
     def __len__(self):
         return int(len(self.subject_ids))
 
     def __getitem__(self, index):
         raise NotImplementedError("Subclasses should implement this method.")
-    
-    def _load_feature_tensor(self, subject_id: int, feature_map: FeatureMapType):
+
+    def _load_feature_tensor(
+        self,
+        subject_id: int,
+        feature_map: FeatureMapType,
+        temporal_process: str | None = None,
+    ) -> torch.Tensor:
         """Load a feature map as a tensor"""
-        image_file = MriImageFile(subject_id, feature_map, self.middle_slice, self.slice_dim, self.temporal_process)
+        image_file = MriImageFile(
+            subject_id, feature_map, self.middle_slice, self.slice_dim, temporal_process
+        )
         feature_tensor = image_file.load_as_tensor()
+        # TODO: Change this to check for actual enum
         if feature_map.label == "T1":
             feature_tensor = self.normalizer.transform(feature_tensor)
         return feature_tensor
-    
+
     def _initilize_normalizer(self, feature_maps: list[FeatureMapType]):
         """Initialize the normalizer for the dataset if required"""
         if "T1" in [fm.label for fm in feature_maps]:
@@ -63,28 +76,56 @@ class BaseNakoDataset(Dataset):
             self.normalizer = MriImageNormalizer(data_dim="2D")
             self.normalizer.load_normalization_params()
 
+    def _create_feature_map_variants(
+        self, feature_maps: list[FeatureMapType], temporal_processes: list[str] | None
+    ) -> list[tuple[FeatureMapType, str | None]]:
+        """Creates variants of feature maps with different temporal processes.
+
+        Args:
+            feature_maps: List of feature maps
+            temporal_processes: List of temporal processes to apply to BOLD maps
+
+        Returns:
+            List of tuples containing (feature_map, temporal_process)
+        """
+        variants = []
+        for fm in feature_maps:
+            if fm == FeatureMapType.BOLD and temporal_processes:
+                # Create a variant for each temporal process
+                for process in temporal_processes:
+                    variants.append((fm, process))
+            else:
+                # Non-BOLD maps don't use temporal processing
+                variants.append((fm, None))
+        return variants
+
+
 class NakoSingleModalityDataset(BaseNakoDataset):
     """PyTorch Dataset class for single modality NAKO data"""
 
-    def __init__(
-        self,
-        subject_ids: list[int],
-        ds_config: SingleModalityDataSetConfig
-    ):
+    def __init__(self, subject_ids: list[int], ds_config: SingleModalityDataSetConfig):
         super().__init__(subject_ids, ds_config)
-        self.feature_maps = ds_config.feature_maps
-        
+        # Initialize feature maps and temporal processes
+        self.feature_map_variants = self._create_feature_map_variants(
+            ds_config.feature_maps, ds_config.temporal_processes
+        )
+
         # Initialize normalizer if needed
-        self._initilize_normalizer(self.feature_maps)
+        self._initilize_normalizer([fm for fm, _ in self.feature_map_variants])
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
         # Load the feature maps as tensors
-        feature_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.feature_maps]
+        feature_tensors = [
+            self._load_feature_tensor(subject_id, fm, temp_proc)
+            for fm, temp_proc in self.feature_map_variants
+        ]
         try:
             feature_tensor = torch.cat(feature_tensors, dim=0)
         except RuntimeError:
-            raise ValueError("Feature maps have different shapes. Please check the data.")
+            raise ValueError(
+                "Feature maps have different shapes. Please check the data."
+            )
 
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
@@ -94,54 +135,65 @@ class NakoSingleModalityDataset(BaseNakoDataset):
 class NakoMultiModalityDataset(BaseNakoDataset):
     """PyTorch Dataset class for multi-modality NAKO data"""
 
-    def __init__(
-        self,
-        subject_ids: list[int],
-        ds_config: MultiModalityDataSetConfig
-    ):
+    def __init__(self, subject_ids: list[int], ds_config: MultiModalityDataSetConfig):
         super().__init__(subject_ids, ds_config)
-        self.anatomical_maps = ds_config.anatomical_maps
-        self.functional_maps = ds_config.functional_maps
-        
+        self.anat_map_variants = self._create_feature_map_variants(
+            ds_config.anatomical_maps,
+            None,  # Anatomical maps don't use temporal processing
+        )
+        self.func_map_variants = self._create_feature_map_variants(
+            ds_config.functional_maps, ds_config.temporal_processes
+        )
+
         # Initialize normalizers if needed
-        self._initilize_normalizer(self.anatomical_maps)
+        self._initilize_normalizer([fm for fm, _ in self.anat_map_variants])
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
-        
+
         # Load anatomical maps
-        anat_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.anatomical_maps]
+        anat_tensors = [
+            self._load_feature_tensor(subject_id, fm, temp_proc)
+            for fm, temp_proc in self.anat_map_variants
+        ]
         try:
             anat_tensor = torch.cat(anat_tensors, dim=0)
         except RuntimeError:
-            raise ValueError("Anatomical maps have different shapes. Please check the data.")
+            raise ValueError(
+                "Anatomical maps have different shapes. Please check the data."
+            )
 
-        # Load functional maps
-        func_tensors = [self._load_feature_tensor(subject_id, fm) for fm in self.functional_maps]
+        # Load functional maps with temporal processing
+        func_tensors = [
+            self._load_feature_tensor(subject_id, fm, temp_proc)
+            for fm, temp_proc in self.func_map_variants
+        ]
         try:
             func_tensor = torch.cat(func_tensors, dim=0)
         except RuntimeError:
-            raise ValueError("Functional maps have different shapes. Please check the data.")
+            raise ValueError(
+                "Functional maps have different shapes. Please check the data."
+            )
 
         # Load the label as a tensor
         label = torch.tensor(self.labels[subject_id]).float()
         return (anat_tensor, func_tensor), label
-    
+
 
 # TODO: Remove this or move to normalization.py
 def compute_normalization_params(train_dataset):
     """Compute mean and std of the training set after min-max scaling"""
     means = []
     stds = []
-    
+
     for i in range(len(train_dataset)):
         feature, _ = train_dataset[i]
         means.append(feature.mean().item())
         stds.append(feature.std().item())
-    
+
     mean = torch.tensor(means).mean().item()
     std = torch.tensor(stds).mean().item()
-    
+
     return mean, std
 
 

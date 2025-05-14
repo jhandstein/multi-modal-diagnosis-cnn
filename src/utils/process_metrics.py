@@ -46,16 +46,16 @@ def get_modality_and_features(dataset: NakoSingleModalityDataset | NakoMultiModa
         - modality_label: str - either specific modality or "anat-func"
         - feature_dict: dict - contains feature maps based on dataset type
     """
-    if hasattr(dataset, "feature_maps"):  # SingleModalityDataset
+    if hasattr(dataset, "feature_map_variants"):  # SingleModalityDataset
         return (
-            dataset.feature_maps[0].modality_label,
-            {"feature_maps": [fm.label for fm in dataset.feature_maps]}
+            dataset.feature_map_variants[0][0].modality_label,
+            {"feature_maps": [fmv[0].label for fmv in dataset.feature_map_variants]}
         )
     else:  # MultiModalityDataset
         return (
             "anat-func",
             {
-                "anatomical_maps": [fm.label for fm in dataset.anatomical_maps],
-                "functional_maps": [fm.label for fm in dataset.functional_maps]
+                "anatomical_maps": [fmv[0].label for fmv in dataset.anat_map_variants],
+                "functional_maps": [fmv[0].label for fmv in dataset.func_map_variants]
             }
         )

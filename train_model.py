@@ -40,7 +40,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "classification" # "classification" "regression"
+    task = "regression" # "classification" "regression"
     dim = "2D"
     anat_feature_maps: list[FeatureMapType] = [
         # FeatureMapType.GM, 
@@ -55,7 +55,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     dual_modality = True if len(anat_feature_maps) > 0 and len(func_feature_maps) > 0 else False
     feature_maps = anat_feature_maps + func_feature_maps
     target = "sex" if task == "classification" else "age"
-    temporal_process = "variance" # "mean", "variance", "tsnr", None
+    temporal_process = ["mean",  "variance", "tsnr"] # "mean", "variance", "tsnr", None
     model_type = "ResNet18" # "ResNet18" "ConvBranch"
 
     epochs = 40
@@ -63,8 +63,8 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     learning_rate = 1e-3 # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "bold_map"
-    experiment_notes = {"notes": f"Trying BOLD feature map with {temporal_process}."}
+    experiment = "bold_map_all"
+    experiment_notes = {"notes": f"Trying BOLD feature map with all processing variants combined {temporal_process}. With ReHo"}
 
     print_collection_dict = {
         "Compute Node": compute_node,
@@ -98,7 +98,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         target=target,
         middle_slice=True if dim == "2D" else False,
         slice_dim=0 if dim == "2D" else None,  
-        temporal_process=temporal_process,  
+        temporal_processes=temporal_process,  
         )
     
     train_set, val_set, test_set = DataSetFactory(
@@ -116,15 +116,26 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
 
     #! ConvBranch is not supported for now
+    # Derive the amount of channels for the feature maps
+    anat_channels = 0
+    func_channels = 0
+    if anat_feature_maps:
+        anat_channels = len(anat_feature_maps)
+    if func_feature_maps:
+        if FeatureMapType.BOLD in func_feature_maps:
+            # Get the number of temporal processes for BOLD
+            func_channels = len(func_feature_maps) + len(temporal_process) - 1
+        else:
+            func_channels = len(func_feature_maps)
     # Create model according to the feature maps
     if dual_modality:
         model = ModelFactory(task=task, dim=dim).create_resnet_multi_modal(
-            anat_channels=len(anat_feature_maps),
-            func_channels=len(func_feature_maps)
+            anat_channels=anat_channels,
+            func_channels=func_channels,
         )
     else:
-        feature_maps = anat_feature_maps or func_feature_maps
-        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=len(feature_maps))
+        num_channels = anat_channels or func_channels
+        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=num_channels)
 
     print_collection_dict["Model Size"] = calculate_model_size(model)
 
