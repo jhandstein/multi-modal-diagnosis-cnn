@@ -1,5 +1,7 @@
+import json
 from pathlib import Path
 
+from src.data_management.data_quality_separation import QualitySampler
 from src.building_blocks.model_factory import ModelFactory
 from src.data_management.mri_image_files import MriImageFile
 from src.data_management.normalization import MriImageNormalizer
@@ -13,10 +15,10 @@ from src.data_management.data_set import SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
-    AGE_SEX_BALANCED_1K_PATH,
+    QUALITY_SPLITS_PATH,
     FeatureMapType,
 )
-from src.testing._250131_first_data_splits import create_balanced_samples
+from src.testing._250131_first_data_splits import create_hq_balanced_samples
 from src.utils.file_path_helper import construct_model_name
 from src.utils.process_metrics import format_metrics_file
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
@@ -62,21 +64,12 @@ def check_mri_intensities():
     
 if __name__ == "__main__":
     print("Hello from test.py")
-    # get_folder_size("/ritter/share/data/NAKO/deep_learning_cache/2D")
 
-    # find_lr()
-    # check_file_size()
-    # plot_metrics_when_failed_during_training()
-    # plot_mri_slices()
-    # check_mri_intensities()
-    # calc_loss_based_on_target_mean(label="age")
-    # img_file = MriImageFile(100010, FeatureMapType.REHO, middle_slice=True, slice_dim=0, temporal_process="mean")
-    # img_tensor = img_file.load_as_tensor()
-    # print(img_tensor.shape)
 
-    split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
-    cache_data_set(
-        train_ids=split["train"],
-        val_ids=split["val"],
-        test_ids=split["test"],
-    )
+    with open(QUALITY_SPLITS_PATH, "r") as file:
+        split_results = json.load(file)
+    # print(split_results)
+
+    sampler = QualitySampler(split_results)
+    sampler.balance_quality_groups()
+    sampler.save_data_splits_to_file()

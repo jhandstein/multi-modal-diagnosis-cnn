@@ -6,6 +6,7 @@ nohup.out
 **_file.out
 **_training.out
 **/age_sex_split*
+**/quality_split*
 plots/**
 .venv/**
 .lr_find_**

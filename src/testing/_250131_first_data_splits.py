@@ -2,6 +2,7 @@ import pandas as pd
 
 from src.data_management.create_data_split import (
     DataSplitFile,
+    check_split_results,
     create_balanced_sample,
     sub_sample_data_split,
 )
@@ -18,7 +19,8 @@ from src.utils.load_targets import extract_targets
 from src.utils.subject_selection import load_subject_ids_from_file
 
 
-def create_balanced_samples():
+def create_hq_balanced_samples():
+    """Create balanced samples for the NAKO dataset from HQ data."""
     hq_fmri_ids = load_subject_ids_from_file(HIGH_QUALITY_FMRI_IDS)
     hq_fmri_targets = extract_targets("sex", hq_fmri_ids)
 
@@ -87,26 +89,6 @@ def get_overlapping_subjects(series1: pd.Series, series2: pd.Series) -> pd.Serie
         
     return s1_overlap
 
-
-def check_split_results(train: pd.Series, val: pd.Series, test: pd.Series) -> None:
-    print(f"Set sizes: train {len(train)}, val {len(val)}, test {len(test)}")
-    print(f"Label distribution (training): \n{train.value_counts()}")
-    print(f"Label distribution (validation): \n{val.value_counts()}")
-    print(f"Label distribution (test): \n{test.value_counts()}")
-    
-    # Check label balance within each set
-    for name, dataset in [("train", train), ("val", val), ("test", test)]:
-        value_counts = dataset.value_counts()
-        if len(set(value_counts)) != 1:  # All classes should have same count
-            raise ValueError(f"Unbalanced classes in {name} set: {value_counts}")
-
-    # Check label proportions across sets
-    train_props = train.value_counts(normalize=True)
-    val_props = val.value_counts(normalize=True)
-    test_props = test.value_counts(normalize=True)
-    
-    if not (train_props.equals(val_props) and train_props.equals(test_props)):
-        raise ValueError("Label proportions differ between splits")
     
 if __name__ == "__main__":
-    create_balanced_samples()
+    create_hq_balanced_samples()

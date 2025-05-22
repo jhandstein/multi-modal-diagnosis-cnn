@@ -12,8 +12,15 @@ NAKO_TARGETS = {
 
 
 def extract_targets(target: str, subject_ids: list[int]) -> pd.Series:
+    # TODO: order of function arguments could be flipped
     """
     Extract the target values for the given subject IDs from the NAKO table.
+
+    Args:
+        target: The target to extract ("age", "sex", ...)
+        subject_ids: List of subject IDs to extract the target for
+    Returns:
+        A pandas Series with the subject IDs as index and the target values as values
     """
     nako_table = pd.read_csv(NAKO_TABLE_PATH)
     nako_table.set_index("ID", inplace=True)

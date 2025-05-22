@@ -4,12 +4,19 @@ from pathlib import Path
 # Sample numbers that are divisible by 128 and therefore suitable for batch processing
 NUM_SAMPLES_1K = 1024
 NUM_SAMPLES_10K = 10240
+
+# Paths for the different dataset splits
 AGE_SEX_BALANCED_1K_PATH = Path("src/data_management/age_sex_split_1k.json")
 AGE_SEX_BALANCED_10K_PATH = Path("src/data_management/age_sex_split_10k.json")
 
+QUALITY_SPLITS_PATH = Path("/home/julius/repositories/ccn_code/src/data_management/quality_split_fd_cnr.json")
+LOW_QUALITY_IDS = Path("src/data_management/quality_split_low_quality_ids.json")
+MEDIUM_QUALITY_IDS = Path("src/data_management/quality_split_medium_quality_ids.json")
+HIGH_QUALITY_IDS = Path("src/data_management/quality_split_high_quality_ids.json")
+
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")
-NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_new.csv")
+NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_v2.csv")
 FMRI_PREP_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/fmriprep")
 XCP_D_FULL_SAMPLE = Path(NAKO_PATH, "derivatives_ses0/xcp_d")
 DL_CACHE_PATH = Path(NAKO_PATH, "deep_learning_cache")
@@ -39,6 +46,8 @@ LOW_QUALITY_FMRI_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_rsfMRI_low_quality.tsv",
 )
+METRICS_CSV_PATH = Path("/ritter/share/projects/Marina/DataLab/MRI_quality_metrics/all_quality_metrics_MRI_NAKO_ses0.csv")
+
 
 
 class ModalityType(Enum):
