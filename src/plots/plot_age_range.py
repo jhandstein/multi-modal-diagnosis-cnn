@@ -5,6 +5,9 @@ from src.data_management.data_set import NakoSingleModalityDataset, SingleModali
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
     AGE_SEX_BALANCED_1K_PATH,
+    HIGH_QUALITY_IDS,
+    LOW_QUALITY_IDS,
+    MEDIUM_QUALITY_IDS,
     PLOTS_PATH,
     FeatureMapType,
 )
@@ -17,7 +20,7 @@ def plot_age_range():
         middle_slice=True
         )
 
-    for path in [AGE_SEX_BALANCED_1K_PATH, AGE_SEX_BALANCED_10K_PATH]:
+    for path in [LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, HIGH_QUALITY_IDS]:
 
         split_path = path
         data_split = DataSplitFile(split_path).load_data_splits_from_file()

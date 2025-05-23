@@ -5,9 +5,7 @@ models_test/**
 nohup.out
 **_file.out
 **_training.out
-**/age_sex_split*
-**/quality_split*
-plots/**
+assets/**
 .venv/**
 .lr_find_**
 **/lr_finder_results.png

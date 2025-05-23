@@ -3,9 +3,11 @@ from pathlib import Path
 import pandas as pd
 
 from src.data_management.create_data_split import (
-    sample_max_minority_class,
-    stratified_binary_split,
-    DataSplitFile
+    check_split_results,
+    create_balanced_sample,
+    DataSplitFile,
+    find_min_minority_class_count,
+    sub_sample_data_split
 )
 from src.utils.config import HIGH_QUALITY_IDS, LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, METRICS_CSV_PATH, QUALITY_SPLITS_PATH
 from src.utils.load_targets import extract_targets
@@ -230,13 +232,11 @@ class QualityAnalyzer:
 
     def save_ids_to_json(self, split_results: dict[str, list]):
         """Saves the subject IDs for each group to a JSON file."""
-        # print(list(split_results.keys()))
         output_path = Path(
             "/home/julius/repositories/ccn_code/src/data_management",
             f"quality_split_{'_'.join([m[0] for m in self.metrics_to_process])}.json",
         )
-        with open(output_path, "w") as f:
-            json.dump(split_results, f, indent=4)
+        DataSplitFile(output_path).save_data_splits_to_file(split_results)
         print(f"Group IDs saved to {output_path}")
 
 
@@ -259,39 +259,31 @@ class QualitySampler:
     def balance_quality_groups(self) -> dict[str, list]:
         """
         Balance the quality groups by sampling the same number of subjects from each group.
-        The number of samples is determined by the minimum number of samples across all groups.
+        The number of samples is determined by the minimum number of a minority class across all groups.
         The sampled subjects are then split into training, validation, and test sets in the ratio of 6:1:1.
-        Labels are as balanced as possible.
         """
 
-        RANDOM_SEED = 42
-
         # Find minimum number of samples across all groups and then find the highest number divisible by 8
-        num_samples = min(len(self.lq_labels), len(self.mq_labels), len(self.hq_labels))
+        num_samples = 2 * find_min_minority_class_count([self.lq_labels, self.mq_labels, self.hq_labels])
         num_samples = num_samples - (num_samples % 8)
-        print(f"Number of samples per group: {num_samples}")
-
-        # Create a dictionary to hold the sampled IDs for each group
 
         # Sample from each group
-        for group_name, label_series in zip(
+        for group_name, labels_series in zip(
             ["low", "medium", "high"], [self.lq_labels, self.mq_labels, self.hq_labels]
         ):
 
-            sampled_ids = sample_max_minority_class(label_series, num_samples, random_seed=RANDOM_SEED)
+            sampled_ids = create_balanced_sample(labels_series, num_samples)
+            print(f"Sampled {len(sampled_ids)} subjects from {group_name.upper()} quality group")
+            train, val, test = sub_sample_data_split(sampled_ids)
 
-            print(f"Sampled {len(sampled_ids)} subjects from {group_name} quality group")
-
-            train, val_test = stratified_binary_split(sampled_ids, split_ratio=6 / 8, random_seed=RANDOM_SEED)
-            val, test = stratified_binary_split(val_test, split_ratio=0.5, random_seed=RANDOM_SEED)
-
-            print(f"  {len(train)} train, {len(val)} val, {len(test)} test samples")
+            check_split_results(train, val, test)
+            print("\n")
 
             # Store the sampled IDs in the final split results
             self.final_split_results[group_name] = {
-                "train": train.tolist(),
-                "val": val.tolist(),
-                "test": test.tolist(),
+                "train": train.index.tolist(),
+                "val": val.index.tolist(),
+                "test": test.index.tolist(),
             }
 
     def save_data_splits_to_file(self):

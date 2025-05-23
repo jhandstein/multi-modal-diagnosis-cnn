@@ -6,13 +6,14 @@ NUM_SAMPLES_1K = 1024
 NUM_SAMPLES_10K = 10240
 
 # Paths for the different dataset splits
-AGE_SEX_BALANCED_1K_PATH = Path("src/data_management/age_sex_split_1k.json")
-AGE_SEX_BALANCED_10K_PATH = Path("src/data_management/age_sex_split_10k.json")
+SPLIT_PATH = Path("assets/data_splits")
+AGE_SEX_BALANCED_1K_PATH = Path(SPLIT_PATH, "age_sex_split_1k.json")
+AGE_SEX_BALANCED_10K_PATH = Path(SPLIT_PATH, "age_sex_split_10k.json")
 
-QUALITY_SPLITS_PATH = Path("/home/julius/repositories/ccn_code/src/data_management/quality_split_fd_cnr.json")
-LOW_QUALITY_IDS = Path("src/data_management/quality_split_low_quality_ids.json")
-MEDIUM_QUALITY_IDS = Path("src/data_management/quality_split_medium_quality_ids.json")
-HIGH_QUALITY_IDS = Path("src/data_management/quality_split_high_quality_ids.json")
+QUALITY_SPLITS_PATH = Path(SPLIT_PATH, "quality_split_fd_cnr.json")
+LOW_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_low_quality_ids.json")
+MEDIUM_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_medium_quality_ids.json")
+HIGH_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_high_quality_ids.json")
 
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")
@@ -23,7 +24,7 @@ DL_CACHE_PATH = Path(NAKO_PATH, "deep_learning_cache")
 
 # Internal paths
 LOGS_PATH = Path("logs")
-PLOTS_PATH = Path("plots")
+PLOTS_PATH = Path("assets/plots")
 
 # IDs for the subjects that have both sMRI and fMRI data
 # AVAILABLE_SUBJECT_IDS = Path("src/utils/subject_ids.txt")
