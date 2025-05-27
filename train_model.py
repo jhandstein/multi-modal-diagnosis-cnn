@@ -198,15 +198,6 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
 
     # TODO: Test model
     def test_model():
-        # checkpoint_path = Path(
-        #     "models/CNN_2D_anat_WM/version_0/checkpoints/epoch=99-step=22400.ckpt"
-        # )
-        # lightning_model = LightningWrapperCnn.load_from_checkpoint(
-        #     checkpoint_path
-        # )
-
-        # # Set model into evaluation mode
-        # lightning_model.eval()
         pass
 
 

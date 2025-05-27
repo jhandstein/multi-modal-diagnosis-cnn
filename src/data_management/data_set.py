@@ -11,7 +11,6 @@ from src.utils.load_targets import extract_targets
 
 @dataclass
 class BaseDataSetConfig:
-    # feature_maps: list[FeatureMapType] = field(default_factory=lambda: [FeatureMapType.GM])
     target: str = "sex"
     middle_slice: bool = True
     slice_dim: int | None = 0
@@ -150,6 +149,8 @@ class NakoMultiModalityDataset(BaseNakoDataset):
 
     def __getitem__(self, idx: int):
         subject_id = self.subject_ids[idx]
+        print(f"Loading subject {subject_id}...")
+        # subject_id in []
 
         # Load anatomical maps
         anat_tensors = [

@@ -25,7 +25,7 @@ def cache_data_set(
     # Define the base configuration for the dataset
     base_config = BaseDataSetConfig(
         target="age",
-        temporal_processes=["mean"],
+        temporal_processes=["mean", "variance", "tsnr"],
     )
 
     # Create the dataset factory
@@ -35,11 +35,13 @@ def cache_data_set(
         test_ids=test_ids,
         base_config=base_config,
         anat_feature_maps=[
-            # FeatureMapType.GM, 
-            # FeatureMapType.T1
+            FeatureMapType.GM, 
+            FeatureMapType.WM,
+            FeatureMapType.CSF,
+            FeatureMapType.T1
             ],
         func_feature_maps=[
-            # FeatureMapType.REHO, 
+            FeatureMapType.REHO,
             FeatureMapType.BOLD,
         ]
     )

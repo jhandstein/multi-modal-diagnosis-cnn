@@ -15,12 +15,12 @@ from src.data_management.data_set import SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
+    HIGH_QUALITY_IDS,
+    LOW_QUALITY_IDS,
+    MEDIUM_QUALITY_IDS,
     QUALITY_SPLITS_PATH,
     FeatureMapType,
 )
-from src.testing._250131_first_data_splits import create_hq_balanced_samples
-from src.utils.file_path_helper import construct_model_name
-from src.utils.process_metrics import format_metrics_file
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 from src.utils.performance_evaluation import calc_loss_based_on_target_mean
 from src.utils.cache_data_set import cache_data_set
@@ -66,12 +66,19 @@ if __name__ == "__main__":
     print("Hello from test.py")
 
 
-    with open(QUALITY_SPLITS_PATH, "r") as file:
-        split_results = json.load(file)
-    # print(split_results)
+    # with open(QUALITY_SPLITS_PATH, "r") as file:
+    #     split_results = json.load(file)
+    # # print(split_results)
 
-    sampler = QualitySampler(split_results)
-    sampler.balance_quality_groups()
-    sampler.save_data_splits_to_file()
+    # sampler = QualitySampler(split_results)
+    # sampler.balance_quality_groups()
+    # sampler.save_data_splits_to_file()
 
-    # plot_age_range()
+    # for path in [AGE_SEX_BALANCED_10K_PATH]:
+    for path in [MEDIUM_QUALITY_IDS]: # LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, HIGH_QUALITY_IDS
+        data_split = DataSplitFile(path).load_data_splits_from_file()
+
+        print(f"Caching data split from {path.stem}:")
+        cache_data_set(data_split["train"], data_split["val"], data_split["test"], 
+                       batch_size=8, 
+                       num_workers=4)

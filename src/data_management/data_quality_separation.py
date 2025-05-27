@@ -11,6 +11,7 @@ from src.data_management.create_data_split import (
 )
 from src.utils.config import HIGH_QUALITY_IDS, LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, METRICS_CSV_PATH, QUALITY_SPLITS_PATH
 from src.utils.load_targets import extract_targets
+from src.utils.subject_selection import load_subject_ids_from_file
 
 # https://mriqc.readthedocs.io/en/latest/iqms/t1w.html
 # https://mriqc.readthedocs.io/en/latest/iqms/bold.html
@@ -247,13 +248,11 @@ class QualitySampler:
 
     def __init__(self, quality_split_results: dict[str, list]):
         self.quality_split_results = quality_split_results
-        self.lq_labels: pd.Series = extract_targets("sex", quality_split_results["low"])
-        self.mq_labels: pd.Series = extract_targets(
-            "sex", quality_split_results["medium"]
-        )
-        self.hq_labels: pd.Series = extract_targets(
-            "sex", quality_split_results["high"]
-        )
+        self.labels: dict[str, pd.Series] = {
+            "low": extract_targets("sex", quality_split_results["low"]),
+            "medium": extract_targets("sex", quality_split_results["medium"]),
+            "high": extract_targets("sex", quality_split_results["high"]),
+        }
         self.final_split_results = {}
 
     def balance_quality_groups(self) -> dict[str, list]:
@@ -262,16 +261,15 @@ class QualitySampler:
         The number of samples is determined by the minimum number of a minority class across all groups.
         The sampled subjects are then split into training, validation, and test sets in the ratio of 6:1:1.
         """
-
+        # Remove all samples that were not fully processed for sMRI or fMRI
+        self.remove_uncprocessed_samples()
+        
         # Find minimum number of samples across all groups and then find the highest number divisible by 8
-        num_samples = 2 * find_min_minority_class_count([self.lq_labels, self.mq_labels, self.hq_labels])
+        num_samples = 2 * find_min_minority_class_count(list(self.labels.values()))
         num_samples = num_samples - (num_samples % 8)
 
         # Sample from each group
-        for group_name, labels_series in zip(
-            ["low", "medium", "high"], [self.lq_labels, self.mq_labels, self.hq_labels]
-        ):
-
+        for group_name, labels_series in self.labels.items():
             sampled_ids = create_balanced_sample(labels_series, num_samples)
             print(f"Sampled {len(sampled_ids)} subjects from {group_name.upper()} quality group")
             train, val, test = sub_sample_data_split(sampled_ids)
@@ -285,6 +283,15 @@ class QualitySampler:
                 "val": val.index.tolist(),
                 "test": test.index.tolist(),
             }
+
+    def remove_uncprocessed_samples(self):
+        """Remove samples that were not fully processed for sMRI or fMRI."""
+        # Implement the logic to remove unprocessed samples
+        load_processed_samples = load_subject_ids_from_file()
+        for group_name, labels_series in self.labels.items():
+            # Filter the labels_series to only include processed samples
+            self.labels[group_name] = labels_series[labels_series.isin(load_processed_samples)]
+            print(f"Removed unprocessed samples from {group_name.upper()} quality group")
 
     def save_data_splits_to_file(self):
         """Saves the pre-defined data splits to multiple JSON files."""
@@ -302,7 +309,6 @@ class QualitySampler:
             
             file = DataSplitFile(file_path)
             file.save_data_splits_to_file(splits)
-
 
 
 if __name__ == "__main__":
