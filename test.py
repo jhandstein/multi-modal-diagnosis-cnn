@@ -66,13 +66,14 @@ if __name__ == "__main__":
     print("Hello from test.py")
 
 
-    # with open(QUALITY_SPLITS_PATH, "r") as file:
-    #     split_results = json.load(file)
+    # split_results = DataSplitFile(QUALITY_SPLITS_PATH).load_data_splits_from_file()
     # # print(split_results)
 
     # sampler = QualitySampler(split_results)
-    # sampler.balance_quality_groups()
-    # sampler.save_data_splits_to_file()
+    # sampler.resample_faulty_subjects("medium")
+    
+
+
 
     # for path in [AGE_SEX_BALANCED_10K_PATH]:
     for path in [MEDIUM_QUALITY_IDS]: # LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, HIGH_QUALITY_IDS
@@ -81,4 +82,4 @@ if __name__ == "__main__":
         print(f"Caching data split from {path.stem}:")
         cache_data_set(data_split["train"], data_split["val"], data_split["test"], 
                        batch_size=8, 
-                       num_workers=4)
+                       num_workers=8)

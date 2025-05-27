@@ -25,7 +25,7 @@ def save_subject_ids(data_directory: Path):
             file.write(f"{subject_id}\n")
 
 
-def load_subject_ids_from_file(file_path=AVAILABLE_SUBJECT_IDS) -> list:
+def load_subject_ids_from_file(file_path=AVAILABLE_SUBJECT_IDS) -> list[int]:
     """Loads all available subject IDs from a file"""
     with open(Path(file_path), "r") as file:
         return [int(line.strip()) for line in file.readlines()]

@@ -49,6 +49,7 @@ class BaseNakoDataset(Dataset):
         return int(len(self.subject_ids))
 
     def __getitem__(self, index):
+        """Get a single item from the dataset."""
         raise NotImplementedError("Subclasses should implement this method.")
 
     def _load_feature_tensor(
@@ -113,6 +114,7 @@ class NakoSingleModalityDataset(BaseNakoDataset):
         self._initilize_normalizer([fm for fm, _ in self.feature_map_variants])
 
     def __getitem__(self, idx: int):
+        """Get a single item from the dataset."""
         subject_id = self.subject_ids[idx]
         # Load the feature maps as tensors
         feature_tensors = [
@@ -148,9 +150,8 @@ class NakoMultiModalityDataset(BaseNakoDataset):
         self._initilize_normalizer([fm for fm, _ in self.anat_map_variants])
 
     def __getitem__(self, idx: int):
+        """Get a single item from the dataset."""
         subject_id = self.subject_ids[idx]
-        print(f"Loading subject {subject_id}...")
-        # subject_id in []
 
         # Load anatomical maps
         anat_tensors = [
@@ -170,6 +171,11 @@ class NakoMultiModalityDataset(BaseNakoDataset):
             for fm, temp_proc in self.func_map_variants
         ]
         try:
+            #! Re-activate if you want to debug the shapes of functional maps
+            # for i, tensor in enumerate(func_tensors):
+            #     # print(f"Functional map {i} shape: {tensor.shape}")
+            #     if tensor.shape != torch.Size([1, 62, 48]):
+            #         print(f"Subject {subject_id} functional map {i} shape: {tensor.shape}")
             func_tensor = torch.cat(func_tensors, dim=0)
         except RuntimeError:
             raise ValueError(

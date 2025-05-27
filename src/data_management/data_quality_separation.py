@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Literal
 import pandas as pd
 
 from src.data_management.create_data_split import (
@@ -7,9 +8,15 @@ from src.data_management.create_data_split import (
     create_balanced_sample,
     DataSplitFile,
     find_min_minority_class_count,
-    sub_sample_data_split
+    sub_sample_data_split,
 )
-from src.utils.config import HIGH_QUALITY_IDS, LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, METRICS_CSV_PATH, QUALITY_SPLITS_PATH
+from src.utils.config import (
+    HIGH_QUALITY_IDS,
+    LOW_QUALITY_IDS,
+    MEDIUM_QUALITY_IDS,
+    METRICS_CSV_PATH,
+    QUALITY_SPLITS_PATH,
+)
 from src.utils.load_targets import extract_targets
 from src.utils.subject_selection import load_subject_ids_from_file
 
@@ -246,6 +253,10 @@ class QualitySampler:
     Class to sample subjects from the previously determined quality groups.
     """
 
+    FAULTY_SAMPLES = [
+        127569 # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
+    ]
+
     def __init__(self, quality_split_results: dict[str, list]):
         self.quality_split_results = quality_split_results
         self.labels: dict[str, pd.Series] = {
@@ -262,8 +273,8 @@ class QualitySampler:
         The sampled subjects are then split into training, validation, and test sets in the ratio of 6:1:1.
         """
         # Remove all samples that were not fully processed for sMRI or fMRI
-        self.remove_uncprocessed_samples()
-        
+        self.remove_unprocessed_samples()
+
         # Find minimum number of samples across all groups and then find the highest number divisible by 8
         num_samples = 2 * find_min_minority_class_count(list(self.labels.values()))
         num_samples = num_samples - (num_samples % 8)
@@ -271,7 +282,9 @@ class QualitySampler:
         # Sample from each group
         for group_name, labels_series in self.labels.items():
             sampled_ids = create_balanced_sample(labels_series, num_samples)
-            print(f"Sampled {len(sampled_ids)} subjects from {group_name.upper()} quality group")
+            print(
+                f"Sampled {len(sampled_ids)} subjects from {group_name.upper()} quality group"
+            )
             train, val, test = sub_sample_data_split(sampled_ids)
 
             check_split_results(train, val, test)
@@ -284,31 +297,114 @@ class QualitySampler:
                 "test": test.index.tolist(),
             }
 
-    def remove_uncprocessed_samples(self):
+    def remove_unprocessed_samples(self):
         """Remove samples that were not fully processed for sMRI or fMRI."""
-        # Implement the logic to remove unprocessed samples
-        load_processed_samples = load_subject_ids_from_file()
+        processed_samples = load_subject_ids_from_file()
+        # Remove potentially faulty subjects from the labels
+        processed_samples = [
+            id_ for id_ in processed_samples if id_ not in self.FAULTY_SAMPLES
+        ]
+
+        # Filter the labels_series to only include processed samples
         for group_name, labels_series in self.labels.items():
-            # Filter the labels_series to only include processed samples
-            self.labels[group_name] = labels_series[labels_series.isin(load_processed_samples)]
-            print(f"Removed unprocessed samples from {group_name.upper()} quality group")
+            self.labels[group_name] = labels_series[
+                labels_series.isin(processed_samples)
+            ]
+            print(
+                f"Removed unprocessed samples from {group_name.upper()} quality group"
+            )
 
     def save_data_splits_to_file(self):
         """Saves the pre-defined data splits to multiple JSON files."""
         if not self.final_split_results:
-            raise ValueError("No data splits available. Please run balance_quality_groups() first.")
+            raise ValueError(
+                "No data splits available. Please run balance_quality_groups() first."
+            )
         for group_name, splits in self.final_split_results.items():
-            if group_name == "low":
-                file_path = LOW_QUALITY_IDS
-            elif group_name == "medium":
-                file_path = MEDIUM_QUALITY_IDS
-            elif group_name == "high":
-                file_path = HIGH_QUALITY_IDS
-            else:
-                raise ValueError(f"Unknown group name: {group_name}")
-            
+            file_path = self._fetch_file_path(group_name)
             file = DataSplitFile(file_path)
             file.save_data_splits_to_file(splits)
+
+    def resample_faulty_subjects(
+        self,
+        quality_group: Literal["low", "medium", "high"],
+    ):
+        """Resample faulty subjects from a specific quality class while keeping the class balance."""
+        current_split = self._load_quality_split_from_file(quality_group)
+
+        # Create a series of labels for the current quality group and get currently used IDs
+        labels_series = self.labels[quality_group]
+        existing_ids = set(
+            current_split["train"] + current_split["val"] + current_split["test"]
+        )
+
+        # Exclude subjects already in the current split
+        for set_name, ids in current_split.items():
+            len_old_ids = len(ids)
+            # Remove faulty subjects from the current set
+            new_ids = [id_ for id_ in ids if id_ not in self.FAULTY_SAMPLES]
+
+            # If we removed some subjects, we need to resample to maintain the original number
+            if len(new_ids) < len_old_ids:
+                print(
+                    f"Resampling {len_old_ids - len(new_ids)} subjects in {quality_group} quality group, set: {set_name}"
+                )
+                num_to_sample = len_old_ids - len(new_ids)
+                print(f"Number of subjects to sample: {num_to_sample}")
+            
+                available_ids = labels_series.index.difference(existing_ids)
+
+                # Ensure replacements have the correct labels
+                faulty_labels = labels_series.loc[self.FAULTY_SAMPLES]
+                replacements = []
+                for label in faulty_labels:
+                    # Find available subjects with the same label
+                    candidates = labels_series.loc[available_ids][
+                        labels_series.loc[available_ids] == label
+                    ]
+                    if not candidates.empty:
+                        replacement = candidates.sample(n=1, random_state=42).index[0]
+                        replacements.append(replacement)
+                        available_ids = available_ids.difference([replacement])
+                    else:
+                        raise ValueError(
+                            f"No available subjects with label {label} to replace faulty subjects."
+                        )
+                
+                # Add the replacements to the set
+                replacements = [int(id_) for id_ in replacements]
+                print(f"Replacements for faulty subjects in {set_name}: {replacements}")
+                new_ids.extend(replacements)
+            # Update the current split with the new IDs
+            current_split[set_name] = new_ids
+            print(f"Updated {set_name} set in {quality_group} quality group: {len(new_ids)} subjects")
+
+
+
+        # Save the updated split back to the file
+        file_path = self._fetch_file_path(quality_group)
+        file = DataSplitFile(file_path)
+        file.save_data_splits_to_file(current_split)
+        print(f"Updated split saved for {quality_group} quality group.")
+
+    def _load_quality_split_from_file(
+        self, quality_group: Literal["low", "medium", "high"]
+    ) -> dict[str, list]:
+        """Loads data splits from a JSON file."""
+        file_path = self._fetch_file_path(quality_group)
+        file = DataSplitFile(file_path)
+        return file.load_data_splits_from_file()
+
+    def _fetch_file_path(self, quality_group: Literal["low", "medium", "high"]) -> Path:
+        """Helper to fetch the file path for a given quality group."""
+        if quality_group == "low":
+            return LOW_QUALITY_IDS
+        elif quality_group == "medium":
+            return MEDIUM_QUALITY_IDS
+        elif quality_group == "high":
+            return HIGH_QUALITY_IDS
+        else:
+            raise ValueError(f"Unknown group name: {quality_group}")
 
 
 if __name__ == "__main__":
