@@ -53,9 +53,8 @@ class LightningWrapperCnn(L.LightningModule):
             metric.to(self.device)
         for metric in self.val_metrics.metrics.values():
             metric.to(self.device)
-        if stage == 'test':
-            for metric in self.test_metrics.metrics.values():
-                metric.to(self.device)
+        for metric in self.test_metrics.metrics.values():
+            metric.to(self.device)
 
     def forward(self, x):
         return self.model(x)
@@ -125,10 +124,10 @@ class LightningWrapperCnn(L.LightningModule):
         loss = self.loss_func(y_hat, y)
 
         # Compute test metrics
-        test_metrics = MetricsFactory.create_metrics(self.task, "test")
+        test_metrics = self.test_metrics(y, y_hat)
         metrics_dict = {
             "test_loss": loss,
-            **test_metrics(y, y_hat)
+            **test_metrics
         }
 
         # Log test metrics
@@ -238,10 +237,9 @@ class MultiModalityWrapper(OneCycleWrapper):
         loss = self.loss_func(y_hat, y)
 
         # Compute test metrics
-        test_metrics = MetricsFactory.create_metrics(self.task, "test")
         metrics_dict = {
             "test_loss": loss,
-            **test_metrics(y, y_hat)
+            **self.test_metrics(y, y_hat)
         }
 
         # Log test metrics

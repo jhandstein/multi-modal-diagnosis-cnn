@@ -173,3 +173,25 @@ class TrainingProgressTracker(Callback):
             log_file = Path(self.logger.log_dir) / "training_progress.json"
             with open(log_file, "w") as f:
                 json.dump(training_info, f, indent=4)
+
+
+class TestingProgressTracker(Callback):
+    """Tracks and logs testing progress metrics."""
+    def __init__(self, logger=None):
+        self.logger = logger
+        self.test_samples = 0
+
+    @rank_zero_only
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        """Accumulate the number of samples processed in testing."""
+        x, y = batch
+        self.test_samples += len(y)
+
+    @rank_zero_only
+    def on_test_end(self, trainer, pl_module):
+        """Log the total number of samples processed during testing."""
+        print(f"Total testing samples processed: {self.test_samples}")
+        if self.logger and self.logger.log_dir:
+            log_file = Path(self.logger.log_dir) / "testing_progress.json"
+            with open(log_file, "w") as f:
+                json.dump({"test_samples": self.test_samples}, f, indent=4)
