@@ -1,11 +1,13 @@
 import argparse
 import time
 from pathlib import Path
+from typing import Literal
 
 import lightning as L
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch import seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor
+import torch
 
 
 from src.building_blocks.model_factory import ModelFactory
@@ -17,13 +19,20 @@ from src.building_blocks.metrics_callbacks import (
     TrainingProgressTracker,
     ValidationPrintCallback,
 )
-from src.data_management.data_set import BaseDataSetConfig
+from src.data_management.data_set import BaseDataSetConfig, BaseNakoDataset
 from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_loader import infer_batch_size, infer_gpu_count, prepare_standard_data_loaders
+from src.data_management.data_loader import (
+    infer_batch_size,
+    infer_gpu_count,
+    prepare_standard_data_loaders,
+)
 from src.data_management.data_set_factory import DataSetFactory
 from src.plots.plot_metrics import plot_all_metrics
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
+    HIGH_QUALITY_IDS,
+    LOW_QUALITY_IDS,
+    MEDIUM_QUALITY_IDS,
     FeatureMapType,
 )
 from src.utils.cuda_utils import allocated_free_gpus, check_cuda, calculate_model_size
@@ -40,37 +49,45 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Set parameters for training
-    task = "regression" # "classification" "regression"
+    task = "classification"  # "classification" "regression"
+    data_subset = "low"  # "big_sample", "low", "medium", "high"
     dim = "2D"
     anat_feature_maps: list[FeatureMapType] = [
-        # FeatureMapType.GM, 
-        # FeatureMapType.WM, 
-        # FeatureMapType.CSF,
-        # FeatureMapType.T1
+        FeatureMapType.GM,
+        FeatureMapType.WM,
+        FeatureMapType.CSF,
+        FeatureMapType.T1,
     ]
     func_feature_maps: list[FeatureMapType] = [
-        # FeatureMapType.REHO,
+        FeatureMapType.REHO,
         FeatureMapType.BOLD,
     ]
-    dual_modality = True if len(anat_feature_maps) > 0 and len(func_feature_maps) > 0 else False
+    dual_modality = (
+        True if len(anat_feature_maps) > 0 and len(func_feature_maps) > 0 else False
+    )
     feature_maps = anat_feature_maps + func_feature_maps
     target = "sex" if task == "classification" else "age"
-    temporal_process = ["mean",  "variance", "tsnr"] # "mean", "variance", "tsnr", None
-    model_type = "ResNet18" # "ResNet18" "ConvBranch"
+    temporal_process = ["mean", "variance", "tsnr"]  # "mean", "variance", "tsnr", None
+    model_type = "ResNet18"  # "ResNet18" "ConvBranch"
 
-    epochs = 40
-    batch_size, accumulate_grad_batches = infer_batch_size(compute_node, dim, model_type)
-    learning_rate = 1e-3 # mr_lr = lr * 25
+    epochs = 2
+    batch_size, accumulate_grad_batches = infer_batch_size(
+        compute_node, dim, model_type
+    )
+    learning_rate = 1e-3  # mr_lr = lr * 25
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    experiment = "bold_map_all"
-    experiment_notes = {"notes": f"Trying BOLD feature map with all processing variants combined {temporal_process}. With ReHo"}
+    experiment = "quality_separation"
+    experiment_notes = {
+        "notes": f"Showing the effects of data with different quality on the model performance."
+    }
 
     print_collection_dict = {
         "Compute Node": compute_node,
         "Experiment": experiment,
         "Run Prefix": prefix,
         "Model Type": model_type,
+        "Data Subset": data_subset,
         "Data Dimension": dim,
         "Feature Maps": [fm.label for fm in feature_maps],
         "Temporal Processing": temporal_process,
@@ -91,28 +108,32 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     else:
         log_dir = Path("models_test")
 
+    # data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+    # data_split = DataSplitFile(LOW_QUALITY_IDS).load_data_splits_from_file()
+    # data_split = DataSplitFile(MEDIUM_QUALITY_IDS).load_data_splits_from_file()
+    # data_split = DataSplitFile(HIGH_QUALITY_IDS).load_data_splits_from_file()
+
     # Prepare data sets and loaders
-    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+    data_set_path = select_data_set(data_subset)
+    data_split = DataSplitFile(data_set_path).load_data_splits_from_file()
 
     base_config = BaseDataSetConfig(
         target=target,
         middle_slice=True if dim == "2D" else False,
-        slice_dim=0 if dim == "2D" else None,  
-        temporal_processes=temporal_process,  
-        )
-    
+        slice_dim=0 if dim == "2D" else None,
+        temporal_processes=temporal_process,
+    )
+
     train_set, val_set, test_set = DataSetFactory(
-        train_ids=data_split["train"], 
-        val_ids=data_split["val"], 
+        train_ids=data_split["train"],
+        val_ids=data_split["val"],
         test_ids=data_split["test"],
         base_config=base_config,
         anat_feature_maps=anat_feature_maps,
-        func_feature_maps=func_feature_maps
+        func_feature_maps=func_feature_maps,
     ).create_data_sets()
 
-    train_loader = prepare_standard_data_loaders(
-        train_set, batch_size=batch_size
-    )
+    train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size)
     val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
 
     #! ConvBranch is not supported for now
@@ -135,7 +156,9 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         )
     else:
         num_channels = anat_channels or func_channels
-        model = ModelFactory(task=task, dim=dim).create_resnet18(in_channels=num_channels)
+        model = ModelFactory(task=task, dim=dim).create_resnet18(
+            in_channels=num_channels
+        )
 
     print_collection_dict["Model Size"] = calculate_model_size(model)
 
@@ -149,11 +172,18 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     )
 
     # Model name for logging
-    model_name = construct_model_name(lightning_wrapper.model, train_set, experiment=experiment, compute_node=compute_node)
+    model_name = construct_model_name(
+        lightning_wrapper.model,
+        train_set,
+        experiment=experiment,
+        compute_node=compute_node,
+    )
 
     # Logging and callbacks
     logger = pl_loggers.CSVLogger(log_dir, name=model_name)
-    start_info_callback = ExperimentStartCallback(logger=logger, logging_dict=print_collection_dict)
+    start_info_callback = ExperimentStartCallback(
+        logger=logger, logging_dict=print_collection_dict
+    )
     print_callback = ValidationPrintCallback(logger=logger)
 
     setup_logger = ExperimentSetupLogger(
@@ -172,20 +202,32 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     trainer_config = LightningTrainerConfig(
         devices=used_gpus,
         max_epochs=epochs,
-        deterministic=True if dim == "2D" else False, # maxpool3d has no deterministic implementation
+        deterministic=(
+            True if dim == "2D" else False
+        ),  # maxpool3d has no deterministic implementation
         accumulate_grad_batches=accumulate_grad_batches,
     )
     trainer = L.Trainer(
-        **trainer_config.dict(), 
-        callbacks=[start_info_callback, print_callback, setup_logger, progress_logger, learning_rate_monitor], 
+        **trainer_config.dict(),
+        callbacks=[
+            start_info_callback,
+            print_callback,
+            setup_logger,
+            progress_logger,
+            learning_rate_monitor,
+        ],
         logger=logger,
-        )
+    )
 
     trainer.fit(
         model=lightning_wrapper,
         train_dataloaders=train_loader,
         val_dataloaders=val_loader,
     )
+
+    # Clean up the trainer and CUDA operations
+    del trainer  # Explicitly delete the trainer object
+    torch.cuda.empty_cache()  # Clear CUDA memory cache
 
     # Process metrics
     metrics_file = Path(logger.log_dir, "metrics.csv")
@@ -196,40 +238,120 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     formatted_file = Path(metrics_file.parent, f"{metrics_file.stem}_formatted.csv")
     plot_all_metrics(formatted_file, task=task, splits=["train", "val"])
 
-    # TODO: Test model
-    def test_model():
-        pass
+    test_model(
+        model_checkpoint_dir=Path(logger.log_dir, "checkpoints"),
+        wrapper_class=wrapper_class,
+        wrapper_parameters={"model": model, "task": task, "learning_rate": learning_rate},
+        test_set=test_set,
+        batch_size=batch_size,
+        log_dir=logger.log_dir,
+    )
+
+
+#! Does not work yet (with multiple GPUs?)
+def test_model(
+        model_checkpoint_dir: Path,
+        wrapper_class: type[MultiModalityWrapper | OneCycleWrapper],
+        wrapper_parameters: dict,
+        test_set: BaseNakoDataset,
+        batch_size: int = 32,
+        log_dir: Path = None,
+    ):
+    """
+    Test the model using a separate Trainer instance.
+
+    Args:
+        model_checkpoint_path: Path to the model checkpoint file.
+        test_set: Dataset for testing.
+        batch_size: Batch size for testing.
+        log_dir: Directory for logging test metrics (same as training/validation logs).
+    """
+    # Dynamically find the checkpoint file in the directory
+    checkpoint_files = list(model_checkpoint_dir.glob("*.ckpt"))
+    if not checkpoint_files:
+        raise FileNotFoundError(f"No checkpoint file found in directory: {model_checkpoint_dir}")
+    checkpoint_path = checkpoint_files[0]  # Assuming there's only one checkpoint file
+
+    # Prepare the test data loader
+    test_loader = prepare_standard_data_loaders(test_set, batch_size=batch_size)
+
+    # Load the model checkpoint
+    lightning_wrapper = wrapper_class.load_from_checkpoint(
+        checkpoint_path=checkpoint_path,
+        **wrapper_parameters,
+    )
+
+    # Set up logger for testing
+    logger = pl_loggers.CSVLogger(log_dir, name="test_metrics") if log_dir else None
+
+    # Configure the test trainer
+    test_trainer_config = LightningTrainerConfig(
+        devices=1,  # Use a single GPU for testing
+        max_epochs=1,  # No need for multiple epochs in testing
+        deterministic=True,  # Ensure deterministic behavior for testing
+        strategy="auto", 
+    )
+    test_trainer = L.Trainer(
+        **test_trainer_config.dict(),
+        callbacks=[ValidationPrintCallback(logger=logger)],
+        logger=logger,
+    )
+
+    # Run the test step
+    test_metrics = test_trainer.test(
+        model=lightning_wrapper,
+        dataloaders=test_loader,
+    )
+
+    # Print test metrics
+    print("Test Metrics:")
+    for metric, value in test_metrics[0].items():
+        print(f"{metric}: {value}")
 
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="train_model",
-        description="Train a model on the MRI data set."
-        )
-    
-    parser.add_argument(
-        "prefix",
-        type=str,
-        help="The prefix/tag for this training run"
+        prog="train_model", description="Train a model on the MRI data set."
     )
+
+    parser.add_argument("prefix", type=str, help="The prefix/tag for this training run")
     parser.add_argument(
-        "-c", "--compute_node",
+        "-c",
+        "--compute_node",
         type=str,
         required=True,
         choices=["cuda01", "cuda02"],
-        help="The computing node to use for training."
+        help="The computing node to use for training.",
     )
     parser.add_argument(
-        "-g", "--num_gpus",
+        "-g",
+        "--num_gpus",
         type=int,
         default=None,
-        help="The number of GPUs to use for training."
+        help="The number of GPUs to use for training.",
     )
     return parser
 
+
+def select_data_set(split: Literal["big_sample", "low", "medium", "high"]) -> Path:
+    """Selects the data set based on the split type."""
+    if split == "big_sample":
+        return AGE_SEX_BALANCED_10K_PATH
+    elif split == "low":
+        return LOW_QUALITY_IDS
+    elif split == "medium":
+        return MEDIUM_QUALITY_IDS
+    elif split == "high":
+        return HIGH_QUALITY_IDS
+    else:
+        raise ValueError(
+            f"Unknown split type: {split}. Choose from 'big_sample', 'low', 'medium', or 'high'."
+        )
+
+
 if __name__ == "__main__":
     """
-    The script can be run either directly with Python or via the run_training.sh script. 
+    The script can be run either directly with Python or via the run_training.sh script.
     If using the latter, the first argument is an optional prefix for the output file.
 
     Direct Python execution:
@@ -242,12 +364,11 @@ if __name__ == "__main__":
     - bash run_training.sh experiment1 -c cuda02 -g 4
     - bash run_training.sh gpu_test -c cuda02 --num_gpus 2
 
-    Note: 
+    Note:
     - -c/--compute_node is required in both cases
     - -g/--num_gpus is optional
     - When using run_training.sh, the first argument is an optional prefix for the output file
     """
-
 
     # check_cuda()
     parser = setup_parser()
@@ -257,4 +378,3 @@ if __name__ == "__main__":
     # print(f"Number of GPUs: {infer_gpu_count(args.compute_node, args.num_gpus)}")
 
     train_model(args.num_gpus, args.compute_node, args.prefix)
-

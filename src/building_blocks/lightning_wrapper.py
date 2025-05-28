@@ -25,7 +25,7 @@ class LightningWrapperCnn(L.LightningModule):
         # Initialize training and validation metrics
         self.train_metrics = MetricsFactory.create_metrics(task, "train")
         self.val_metrics = MetricsFactory.create_metrics(task, "val")
-
+        self.test_metrics = MetricsFactory.create_metrics(task, "test")
 
         # Training set up
         self.logging_params = {
@@ -53,6 +53,9 @@ class LightningWrapperCnn(L.LightningModule):
             metric.to(self.device)
         for metric in self.val_metrics.metrics.values():
             metric.to(self.device)
+        if stage == 'test':
+            for metric in self.test_metrics.metrics.values():
+                metric.to(self.device)
 
     def forward(self, x):
         return self.model(x)
@@ -116,14 +119,22 @@ class LightningWrapperCnn(L.LightningModule):
         
         return loss
 
-    def test_step(self, batch):
-        # test_step defines the test loop.
+    def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model(x)
-        loss = self.loss_func(y, y_hat)
+        loss = self.loss_func(y_hat, y)
 
-        # self.log("test_loss", loss)
-        return loss
+        # Compute test metrics
+        test_metrics = MetricsFactory.create_metrics(self.task, "test")
+        metrics_dict = {
+            "test_loss": loss,
+            **test_metrics(y, y_hat)
+        }
+
+        # Log test metrics
+        self.log_dict(metrics_dict, sync_dist=True)
+
+        return metrics_dict
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -219,3 +230,21 @@ class MultiModalityWrapper(OneCycleWrapper):
         self.epoch_samples["val"] += len(y)
         
         return loss
+    
+    def test_step(self, batch, batch_idx):
+        # Unpack the dual modality batch
+        (x1, x2), y = batch
+        y_hat = self.model(x1, x2)
+        loss = self.loss_func(y_hat, y)
+
+        # Compute test metrics
+        test_metrics = MetricsFactory.create_metrics(self.task, "test")
+        metrics_dict = {
+            "test_loss": loss,
+            **test_metrics(y, y_hat)
+        }
+
+        # Log test metrics
+        self.log_dict(metrics_dict, sync_dist=True)
+
+        return metrics_dict
