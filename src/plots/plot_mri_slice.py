@@ -10,11 +10,16 @@ def plot_mri_slice(subject_id: int, feature_map = FeatureMapType.GM, slice_dim: 
     """
     Plots an MRI slice as a 2D image
     """
+
+    if feature_map == FeatureMapType.BOLD:
+        temporal_processing = "mean"
+    else:
+        temporal_processing = None
     
-    mri_slice = MriImageFile(subject_id, feature_map, slice_dim=slice_dim, middle_slice=True).load_as_tensor().squeeze()
+    mri_slice = MriImageFile(subject_id, feature_map, slice_dim=slice_dim, middle_slice=True, temporal_process=temporal_processing).load_as_tensor().squeeze()
     mri_slice = mri_slice.numpy()
 
-    plt.imshow(mri_slice, cmap="gray")
+    plt.imshow(mri_slice, cmap="gray" if feature_map != FeatureMapType.BOLD else "turbo")
     plt.axis("off")
 
     folder_path = PLOTS_PATH / "mri_slices" / f"images-{subject_id}"

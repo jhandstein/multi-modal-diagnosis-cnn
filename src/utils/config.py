@@ -79,9 +79,10 @@ class FeatureMapType(Enum):
 
     # rs-fMRI maps (FUNC modality)
     REHO = ("reho", ModalityType.FUNC)
-    ALFF = ("alff", ModalityType.FUNC)
-    fALFF = ("falff", ModalityType.FUNC)
-    VMHC = ("vmhc", ModalityType.FUNC)
+    #! The following feature maps are not yet implemented
+    # ALFF = ("alff", ModalityType.FUNC)
+    # fALFF = ("falff", ModalityType.FUNC)
+    # VMHC = ("vmhc", ModalityType.FUNC)
 
     def __init__(self, feature_name: str, modality: ModalityType):
         self._feature_name = feature_name

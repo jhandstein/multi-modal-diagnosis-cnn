@@ -24,6 +24,7 @@ from src.utils.config import (
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 from src.utils.performance_evaluation import calc_loss_based_on_target_mean
 from src.utils.cache_data_set import cache_data_set
+from src.utils.check_fm_value_range import check_fm_value_range
 
 
 def find_lr():
@@ -54,7 +55,7 @@ def plot_mri_slices():
     for dim in [0, 1, 2]:
         # for fm in [FeatureMapType.GM, FeatureMapType.WM, FeatureMapType.CSF, FeatureMapType.REHO, FeatureMapType.T1, FeatureMapType.FMRI]:
         #     plot_mri_slice(100010, slice_dim=dim, feature_map=fm)
-        plot_mri_slice(100010, slice_dim=dim, feature_map=FeatureMapType.CSF)
+        plot_mri_slice(100008, slice_dim=dim, feature_map=FeatureMapType.BOLD)
 
 
 def check_mri_intensities():
@@ -65,21 +66,18 @@ def check_mri_intensities():
 if __name__ == "__main__":
     print("Hello from test.py")
 
+    for tp in [None, "mean", "variance", "tsnr"]:
+        print(f"Checking value range for temporal process: {tp}")
+        check_fm_value_range(
+            feature_map=FeatureMapType.BOLD,
+            temporal_process=tp
+        )
 
-    # split_results = DataSplitFile(QUALITY_SPLITS_PATH).load_data_splits_from_file()
-    # # print(split_results)
+    # check_fm_value_range(
+    #     feature_map=FeatureMapType.BOLD,
+    #     temporal_process=None
+    # )
 
-    # sampler = QualitySampler(split_results)
-    # sampler.resample_faulty_subjects("medium")
-    
-
-
-
-    # for path in [AGE_SEX_BALANCED_10K_PATH]:
-    for path in [MEDIUM_QUALITY_IDS]: # LOW_QUALITY_IDS, MEDIUM_QUALITY_IDS, HIGH_QUALITY_IDS
-        data_split = DataSplitFile(path).load_data_splits_from_file()
-
-        print(f"Caching data split from {path.stem}:")
-        cache_data_set(data_split["train"], data_split["val"], data_split["test"], 
-                       batch_size=8, 
-                       num_workers=8)
+    # mri_file = MriImageFile(100010, FeatureMapType.BOLD, middle_slice=False, slice_dim=0, temporal_process=None)
+    # tensor = mri_file.load_as_tensor()
+    # print(tensor.shape)

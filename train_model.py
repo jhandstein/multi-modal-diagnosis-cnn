@@ -41,19 +41,19 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
-TASK = "classification"  # "classification" "regression"
-DATA_SUBSET = "medium"  # "big_sample", "low", "medium", "high"
+TASK = "regression"  # "classification" "regression"
+DATA_SUBSET = "high"  # "big_sample", "low", "medium", "high"
 DIM = "2D"
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
-    # FeatureMapType.GM,
-    # FeatureMapType.WM,
-    # FeatureMapType.CSF,
+    FeatureMapType.GM,
+    FeatureMapType.WM,
+    FeatureMapType.CSF,
     FeatureMapType.T1,
 ]
 FUNC_FEATURE_MAPS: list[FeatureMapType] = [
-    # FeatureMapType.REHO,
-    # FeatureMapType.BOLD,
+    FeatureMapType.REHO,
+    FeatureMapType.BOLD,
 ]
 DUAL_MODALITY = (
     True if len(ANAT_FEATURE_MAPS) > 0 and len(FUNC_FEATURE_MAPS) > 0 else False

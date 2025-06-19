@@ -65,6 +65,7 @@ class BaseNakoDataset(Dataset):
         feature_tensor = image_file.load_as_tensor()
         # TODO: Change this to check for actual enum
         if feature_map.label == "T1":
+            # TODO: This value should be derived from the actual dataset if multiple datasets are used
             feature_tensor = self.normalizer.transform(feature_tensor)
         return feature_tensor
 
