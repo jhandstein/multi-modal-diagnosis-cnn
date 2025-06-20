@@ -2,8 +2,8 @@ from torch import nn
 import torch
 
 from src.building_blocks.torchmetrics import RegressionMetrics
-from src.data_management.create_data_split import DataSplitFile
-from src.utils.load_targets import extract_targets
+from src.data_splitting.create_data_split import DataSplitFile
+from src.data_splitting.load_targets import extract_targets
 from src.utils.config import AGE_SEX_BALANCED_10K_PATH
 from src.utils.create_sample_data import generate_sample_data_sets
 

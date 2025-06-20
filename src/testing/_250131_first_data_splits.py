@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.data_management.create_data_split import (
+from src.data_splitting.create_data_split import (
     DataSplitFile,
     check_split_results,
     create_balanced_sample,
@@ -15,8 +15,8 @@ from src.utils.config import (
     NUM_SAMPLES_10K,
     NUM_SAMPLES_1K,
 )
-from src.utils.load_targets import extract_targets
-from src.utils.subject_selection import load_subject_ids_from_file
+from src.data_splitting.load_targets import extract_targets
+from src.data_splitting.subject_selection import load_subject_ids_from_file
 
 
 def create_hq_balanced_samples():

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from src.building_blocks.custom_model import ConvBranch2dBinary, ConvBranch2dRegression, ConvBranch3dBinary, ConvBranch3dRegression
-from src.building_blocks.resnet18 import ResNet18Binary2d, ResNet18Binary2dDualModality, ResNet18Regression2d, ResNet18Binary3d, ResNet18Regression2dDualModality, ResNet18Regression3d
+from src.building_blocks.resnet18 import ResNet18Binary2d, ResNet18Binary2dDualModality, ResNet18Binary3dDualModality, ResNet18Regression2d, ResNet18Binary3d, ResNet18Regression2dDualModality, ResNet18Regression3d, ResNet18Regression3dDualModality
 
 
 @dataclass
@@ -29,6 +29,8 @@ class ModelFactory:
     _resnet_dual_modality_models = {
         ("2D", "classification"): ResNet18Binary2dDualModality,
         ("2D", "regression"): ResNet18Regression2dDualModality,
+        ("3D", "classification"): ResNet18Binary3dDualModality,
+        ("3D", "regression"): ResNet18Regression3dDualModality,
     }
 
     def create_conv_branch(self, input_shape: tuple):
@@ -45,8 +47,8 @@ class ModelFactory:
     
     def create_resnet_multi_modal(self, anat_channels: int, func_channels: int):
         """Creates a dual modality model with separate branches for anatomical and functional data."""
-        if self.dim == "3D":
-            raise NotImplementedError("3D fusion models not yet supported")
+        # if self.dim == "3D":
+        #     raise NotImplementedError("3D fusion models not yet supported")
             
         fusion_model_class = self._resnet_dual_modality_models.get((self.dim, self.task))
         if not fusion_model_class:

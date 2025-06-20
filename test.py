@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from src.data_management.data_quality_separation import QualitySampler
+from src.data_splitting.data_quality_separation import QualitySampler
 from src.building_blocks.model_factory import ModelFactory
 from src.data_management.mri_image_files import MriImageFile
 from src.data_management.normalization import MriImageNormalizer
@@ -10,8 +10,8 @@ from src.plots.plot_metrics import plot_all_metrics
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.plot_age_range import plot_age_range
-from src.data_management.create_data_split import DataSplitFile
-from src.data_management.data_set import SingleModalityDataSetConfig
+from src.data_splitting.create_data_split import DataSplitFile
+from src.data_management.data_set import BaseDataSetConfig, SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,
@@ -25,6 +25,8 @@ from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 from src.utils.performance_evaluation import calc_loss_based_on_target_mean
 from src.utils.cache_data_set import cache_data_set
 from src.utils.check_fm_value_range import check_fm_value_range
+from src.data_splitting.load_targets import extract_targets
+from src.data_splitting.subject_selection import load_subject_ids_from_file
 
 
 def find_lr():
@@ -66,18 +68,14 @@ def check_mri_intensities():
 if __name__ == "__main__":
     print("Hello from test.py")
 
-    for tp in [None, "mean", "variance", "tsnr"]:
-        print(f"Checking value range for temporal process: {tp}")
-        check_fm_value_range(
-            feature_map=FeatureMapType.BOLD,
-            temporal_process=tp
-        )
+    # for tp in [None, "mean", "variance", "tsnr"]:
+    #     print(f"Checking value range for temporal process: {tp}")
+    #     check_fm_value_range(
+    #         feature_map=FeatureMapType.BOLD,
+    #         temporal_process=tp
+    #     )
 
-    # check_fm_value_range(
-    #     feature_map=FeatureMapType.BOLD,
-    #     temporal_process=None
-    # )
+    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
 
-    # mri_file = MriImageFile(100010, FeatureMapType.BOLD, middle_slice=False, slice_dim=0, temporal_process=None)
-    # tensor = mri_file.load_as_tensor()
-    # print(tensor.shape)
+    print(extract_targets("gad7_cutoff", load_subject_ids_from_file()).value_counts())
+    # print(extract_targets("phq9_sum", data_split["train"] + data_split["val"] + data_split["test"]).value_counts())

@@ -21,7 +21,7 @@ from src.building_blocks.metrics_callbacks import (
     ValidationPrintCallback,
 )
 from src.data_management.data_set import BaseDataSetConfig, BaseNakoDataset
-from src.data_management.create_data_split import DataSplitFile
+from src.data_splitting.create_data_split import DataSplitFile
 from src.data_management.data_loader import (
     infer_batch_size,
     infer_gpu_count,
@@ -41,9 +41,9 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
-TASK = "regression"  # "classification" "regression"
-DATA_SUBSET = "high"  # "big_sample", "low", "medium", "high"
-DIM = "2D"
+TASK = "classification"  # "classification" "regression"
+DATA_SUBSET = "big_sample"  # "big_sample", "low", "medium", "high"
+DIM = "3D"
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
     FeatureMapType.GM,
@@ -60,14 +60,18 @@ DUAL_MODALITY = (
 )
 FEATURE_MAPS = ANAT_FEATURE_MAPS + FUNC_FEATURE_MAPS
 TARGET = "sex" if TASK == "classification" else "age"
-TEMPORAL_PROCESS = ["mean", "variance", "tsnr"]  # "mean", "variance", "tsnr", None
+TEMPORAL_PROCESS = [
+    "mean", 
+    # "variance", 
+    # "tsnr"
+    ]  # "mean", "variance", "tsnr", None
 
 MODEL_TYPE = "ResNet18"  # "ResNet18" "ConvBranch"
-EPOCHS = 40
+EPOCHS = 50
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
-EXPERIMENT = "quality_separation"
+EXPERIMENT = "full_blown_model"
 EXPERIMENT_NOTES = {
-    "notes": f"Showing the effects of data with different quality on the model performance. {DATA_SUBSET} quality data subset.",
+    "notes": f"Using all anatomical and functional feature maps for {TASK} task with 3D data with only MEAN temporal processing.",
 }
 
 
@@ -81,9 +85,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
 
     # Infer batch size and GPUs
     # global BATCH_SIZE, ACCUMULATE_GRAD_BATCHES, LOG_DIR
-    batch_size, acc_grad_batches = infer_batch_size(
-        compute_node, DIM, MODEL_TYPE
-    )
+    batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
     log_dir = Path("models") if EPOCHS > 20 else Path("models_test")
@@ -227,7 +229,10 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     )
     test_trainer = L.Trainer(
         **test_trainer_config.dict(),
-        callbacks=[ValidationPrintCallback(logger=logger), TestingProgressTracker(logger=logger)],
+        callbacks=[
+            ValidationPrintCallback(logger=logger),
+            TestingProgressTracker(logger=logger),
+        ],
         logger=logger,
     )
 
@@ -235,8 +240,10 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     test_loader = prepare_standard_data_loaders(test_set, batch_size=batch_size)
     # Load the model checkpoint
     wrapper_class = MultiModalityWrapper if DUAL_MODALITY else OneCycleWrapper
-    model_checkpoint_dir=Path(logger.log_dir, "checkpoints")
-    checkpoint_file = list(model_checkpoint_dir.glob("*.ckpt"))[0] # Assuming there's only one checkpoint file
+    model_checkpoint_dir = Path(logger.log_dir, "checkpoints")
+    checkpoint_file = list(model_checkpoint_dir.glob("*.ckpt"))[
+        0
+    ]  # Assuming there's only one checkpoint file
 
     lightning_wrapper = wrapper_class.load_from_checkpoint(
         checkpoint_path=checkpoint_file,

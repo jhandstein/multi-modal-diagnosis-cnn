@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from src.data_management.normalization import MriImageNormalizer
 from src.data_management.mri_image_files import MriImageFile
 from src.utils.config import FeatureMapType
-from src.utils.load_targets import extract_targets
+from src.data_splitting.load_targets import extract_targets
 
 
 @dataclass
@@ -72,9 +72,7 @@ class BaseNakoDataset(Dataset):
     def _initilize_normalizer(self, feature_maps: list[FeatureMapType]):
         """Initialize the normalizer for the dataset if required"""
         if "T1" in [fm.label for fm in feature_maps]:
-            if not self.middle_slice:
-                raise ValueError("Normalization is only supported for 2D data yet!")
-            self.normalizer = MriImageNormalizer(data_dim="2D")
+            self.normalizer = MriImageNormalizer(data_dim="2D" if self.middle_slice else "3D")
             self.normalizer.load_normalization_params()
 
     def _create_feature_map_variants(

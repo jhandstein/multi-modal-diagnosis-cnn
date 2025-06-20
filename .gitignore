@@ -10,3 +10,4 @@ assets/**
 .lr_find_**
 **/lr_finder_results.png
 grid-env/**
+**/subject_ids.txt

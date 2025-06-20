@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 import pandas as pd
 
-from src.data_management.create_data_split import (
+from src.data_splitting.create_data_split import (
     check_split_results,
     create_balanced_sample,
     DataSplitFile,
@@ -17,8 +17,8 @@ from src.utils.config import (
     METRICS_CSV_PATH,
     QUALITY_SPLITS_PATH,
 )
-from src.utils.load_targets import extract_targets
-from src.utils.subject_selection import load_subject_ids_from_file
+from src.data_splitting.load_targets import extract_targets
+from src.data_splitting.subject_selection import load_subject_ids_from_file
 
 # https://mriqc.readthedocs.io/en/latest/iqms/t1w.html
 # https://mriqc.readthedocs.io/en/latest/iqms/bold.html
