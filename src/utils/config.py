@@ -15,6 +15,8 @@ LOW_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_low_quality_ids.json")
 MEDIUM_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_medium_quality_ids.json")
 HIGH_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_high_quality_ids.json")
 
+PHQ9_CUTOFF_SPLIT_PATH = Path(SPLIT_PATH, "phq9_cutoff_split.json")
+
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")
 NAKO_TABLE_PATH = Path(NAKO_PATH, "NAKO_data_processed/NAKO_all_orig_columns_v2.csv")
@@ -32,6 +34,10 @@ AVAILABLE_SUBJECT_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_bothMRI_successfull.txt",
 )
+
+FAULTY_SAMPLE_IDS = [
+    127569 # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
+]  
 
 # IDs for the subjects that have high quality sMRI and fMRI data
 # High quality fMRI also means that sMRI is high quality..?

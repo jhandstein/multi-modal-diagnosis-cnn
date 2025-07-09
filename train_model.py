@@ -41,37 +41,37 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
-TASK = "classification"  # "classification" "regression"
+TARGET = "phq9_sum" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
+TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
 DATA_SUBSET = "big_sample"  # "big_sample", "low", "medium", "high"
-DIM = "3D"
+DIM = "2D"
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
-    FeatureMapType.GM,
-    FeatureMapType.WM,
-    FeatureMapType.CSF,
-    FeatureMapType.T1,
+    # FeatureMapType.GM,
+    # FeatureMapType.WM,
+    # FeatureMapType.CSF,
+    # FeatureMapType.T1,
 ]
 FUNC_FEATURE_MAPS: list[FeatureMapType] = [
-    FeatureMapType.REHO,
+    # FeatureMapType.REHO,
     FeatureMapType.BOLD,
 ]
 DUAL_MODALITY = (
     True if len(ANAT_FEATURE_MAPS) > 0 and len(FUNC_FEATURE_MAPS) > 0 else False
 )
 FEATURE_MAPS = ANAT_FEATURE_MAPS + FUNC_FEATURE_MAPS
-TARGET = "sex" if TASK == "classification" else "age"
 TEMPORAL_PROCESS = [
     "mean", 
-    # "variance", 
-    # "tsnr"
+    "variance", 
+    "tsnr"
     ]  # "mean", "variance", "tsnr", None
 
 MODEL_TYPE = "ResNet18"  # "ResNet18" "ConvBranch"
-EPOCHS = 50
+EPOCHS = 40
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
-EXPERIMENT = "full_blown_model"
+EXPERIMENT = "3d_run"
 EXPERIMENT_NOTES = {
-    "notes": f"Using all anatomical and functional feature maps for {TASK} task with 3D data with only MEAN temporal processing.",
+    "notes": f"Training with 3D ResNet18 on {DATA_SUBSET} data subset. {[fm.label for fm in FEATURE_MAPS]} feature maps, {TEMPORAL_PROCESS} temporal processing.",
 }
 
 
@@ -84,7 +84,6 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     seed_everything(42, workers=True)
 
     # Infer batch size and GPUs
-    # global BATCH_SIZE, ACCUMULATE_GRAD_BATCHES, LOG_DIR
     batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
@@ -219,11 +218,11 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     del trainer  # Explicitly delete the trainer object
     torch.cuda.empty_cache()  # Clear CUDA memory cache
 
-    # test_model()
+    print("Entering testing phase...")
     test_trainer_config = LightningTrainerConfig(
         devices=1,  # Use the same number of GPUs for testing
         max_epochs=1,  # No need for multiple epochs in testing
-        deterministic=True,  # Ensure deterministic behavior for testing
+        deterministic=True if DIM == "2D" else False,  # Ensure deterministic behavior for testing
         strategy="auto",
         accumulate_grad_batches=acc_grad_batches,
     )

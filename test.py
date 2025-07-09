@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from src.data_splitting.advanced_phenotype_split import PhenotypeSampler
 from src.data_splitting.data_quality_separation import QualitySampler
 from src.building_blocks.model_factory import ModelFactory
 from src.data_management.mri_image_files import MriImageFile
@@ -18,6 +19,7 @@ from src.utils.config import (
     HIGH_QUALITY_IDS,
     LOW_QUALITY_IDS,
     MEDIUM_QUALITY_IDS,
+    PHQ9_CUTOFF_SPLIT_PATH,
     QUALITY_SPLITS_PATH,
     FeatureMapType,
 )
@@ -75,7 +77,13 @@ if __name__ == "__main__":
     #         temporal_process=tp
     #     )
 
-    data_split = DataSplitFile(AGE_SEX_BALANCED_10K_PATH).load_data_splits_from_file()
+    # data_split = DataSplitFile(PHQ9_CUTOFF_SPLIT_PATH).load_data_splits_from_file()
 
-    print(extract_targets("gad7_cutoff", load_subject_ids_from_file()).value_counts())
-    # print(extract_targets("phq9_sum", data_split["train"] + data_split["val"] + data_split["test"]).value_counts())
+    # cache_data_set(data_split["train"], data_split["val"], data_split["test"])
+
+    sampler = PhenotypeSampler("systolic_blood_pressure")
+    # subjects = sampler.sample_binary_dataset()
+    # sampler.check_sample_age_sex_distribution(subjects)
+    # sampler.split_and_save_binary_sample(subjects, PHQ9_CUTOFF_SPLIT_PATH)
+
+    sampler.check_sample_age_sex_distribution(sampler.target_values)
