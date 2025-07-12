@@ -30,7 +30,7 @@ def cache_data_set(
             "variance",
             "tsnr"
         ],
-        middle_slice=True,
+        middle_slice=False,
     )
 
     # Create the dataset factory
@@ -40,13 +40,13 @@ def cache_data_set(
         test_ids=test_ids,
         base_config=base_config,
         anat_feature_maps=[
-            FeatureMapType.GM,
-            FeatureMapType.WM,
-            FeatureMapType.CSF,
-            FeatureMapType.T1
+            # FeatureMapType.GM,
+            # FeatureMapType.WM,
+            # FeatureMapType.CSF,
+            # FeatureMapType.T1
         ],
         func_feature_maps=[
-            FeatureMapType.REHO,
+            # FeatureMapType.REHO,
             FeatureMapType.BOLD,
         ],
     )

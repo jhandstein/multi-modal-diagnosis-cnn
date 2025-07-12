@@ -29,6 +29,7 @@ from src.utils.cache_data_set import cache_data_set
 from src.utils.check_fm_value_range import check_fm_value_range
 from src.data_splitting.load_targets import extract_targets
 from src.data_splitting.subject_selection import load_subject_ids_from_file
+from src.utils.create_sample_data import generate_sample_data_sets
 
 
 def find_lr():
@@ -77,13 +78,16 @@ if __name__ == "__main__":
     #         temporal_process=tp
     #     )
 
-    # data_split = DataSplitFile(PHQ9_CUTOFF_SPLIT_PATH).load_data_splits_from_file()
+    data_split = DataSplitFile(PHQ9_CUTOFF_SPLIT_PATH).load_data_splits_from_file()
 
-    # cache_data_set(data_split["train"], data_split["val"], data_split["test"])
+    cache_data_set(data_split["train"], data_split["val"], data_split["test"])
 
-    sampler = PhenotypeSampler("systolic_blood_pressure")
+    # sampler = PhenotypeSampler("systolic_blood_pressure")
     # subjects = sampler.sample_binary_dataset()
     # sampler.check_sample_age_sex_distribution(subjects)
     # sampler.split_and_save_binary_sample(subjects, PHQ9_CUTOFF_SPLIT_PATH)
 
-    sampler.check_sample_age_sex_distribution(sampler.target_values)
+    # sampler.check_sample_age_sex_distribution(sampler.target_values)
+
+    # train, val, test = generate_sample_data_sets(label="phq9_cutoff", middle_slice=True)
+    # print(train.target, train.labels.value_counts())

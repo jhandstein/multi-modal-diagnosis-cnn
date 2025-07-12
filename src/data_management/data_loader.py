@@ -12,8 +12,8 @@ BATCH_PARAMS_CUDA01 = {
 BATCH_PARAMS_CUDA02 = {
     ("2D", "ConvBranch"): (64, 1),
     ("2D", "ResNet18"): (64, 1),
-    ("3D", "ConvBranch"): (16, 2),
-    ("3D", "ResNet18"): (16, 2),
+    ("3D", "ConvBranch"): (8, 4),
+    ("3D", "ResNet18"): (8, 4),
 }
 
 
