@@ -10,6 +10,13 @@ SPLIT_PATH = Path("assets/data_splits")
 AGE_SEX_BALANCED_1K_PATH = Path(SPLIT_PATH, "age_sex_split_1k.json")
 AGE_SEX_BALANCED_10K_PATH = Path(SPLIT_PATH, "age_sex_split_10k.json")
 
+RESHUFFLED_27_PATH = Path(SPLIT_PATH, "reshuffled_27.json")
+# RESHUFFLED_42_PATH = Path(SPLIT_PATH, "reshuffled_42.json")
+RESHUFFLED_1984_PATH = Path(SPLIT_PATH, "reshuffled_1984.json")
+RESHUFFLED_1312_PATH = Path(SPLIT_PATH, "reshuffled_1312.json")
+RESHUFFLED_404_PATH = Path(SPLIT_PATH, "reshuffled_404.json")
+
+
 QUALITY_SPLITS_PATH = Path(SPLIT_PATH, "quality_split_fd_cnr.json")
 LOW_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_low_quality_ids.json")
 MEDIUM_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_medium_quality_ids.json")

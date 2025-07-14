@@ -60,7 +60,7 @@ def infer_batch_size(
 
 
 def prepare_standard_data_loaders(
-    data_set: Dataset, batch_size: int = 8, num_workers: int = 4, drop_last: bool = True
+    data_set: Dataset, batch_size: int = 8, num_workers: int = 4, drop_last: bool = True, shuffle: bool = True
 ) -> DataLoader:
     """
     Prepare standard data loaders for training and validation.
@@ -78,7 +78,7 @@ def prepare_standard_data_loaders(
         pin_memory=True,
         persistent_workers=True, # disable if issues with the server
         # Data properties
-        shuffle=False,
+        shuffle=shuffle,
         drop_last=drop_last,
     )
 

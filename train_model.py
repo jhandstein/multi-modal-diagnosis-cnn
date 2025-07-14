@@ -41,20 +41,25 @@ from src.utils.process_metrics import format_metrics_file
 from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
-TARGET = "phq9_sum" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
+SEED = 42 # 27, 24, 404, 1312, 1984
+TARGET = "sex" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
 TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
 DATA_SUBSET = "big_sample"  # "big_sample", "low", "medium", "high"
 DIM = "2D"
+EXPERIMENT = f"{SEED}_{DIM}_{TARGET}_final"
+EXPERIMENT_NOTES = {
+    "notes": f"Final results for {SEED} run for {TASK} in {DIM}",
+}
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
-    # FeatureMapType.GM,
-    # FeatureMapType.WM,
-    # FeatureMapType.CSF,
+    FeatureMapType.GM,
+    FeatureMapType.WM,
+    FeatureMapType.CSF,
     # FeatureMapType.T1,
 ]
 FUNC_FEATURE_MAPS: list[FeatureMapType] = [
     # FeatureMapType.REHO,
-    FeatureMapType.BOLD,
+    # FeatureMapType.BOLD,
 ]
 DUAL_MODALITY = (
     True if len(ANAT_FEATURE_MAPS) > 0 and len(FUNC_FEATURE_MAPS) > 0 else False
@@ -62,17 +67,14 @@ DUAL_MODALITY = (
 FEATURE_MAPS = ANAT_FEATURE_MAPS + FUNC_FEATURE_MAPS
 TEMPORAL_PROCESS = [
     "mean", 
-    "variance", 
-    "tsnr"
+    # "variance", 
+    # "tsnr"
     ]  # "mean", "variance", "tsnr", None
 
 MODEL_TYPE = "ResNet18"  # "ResNet18" "ConvBranch"
-EPOCHS = 40
+EPOCHS = 2
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
-EXPERIMENT = "3d_run"
-EXPERIMENT_NOTES = {
-    "notes": f"Training with 3D ResNet18 on {DATA_SUBSET} data subset. {[fm.label for fm in FEATURE_MAPS]} feature maps, {TEMPORAL_PROCESS} temporal processing.",
-}
+FINAL_VERSION = True  # Set to True for final version, False for testing
 
 
 def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = None):
@@ -81,7 +83,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     print("Training model...")
 
     # Set seed for reproducibility
-    seed_everything(42, workers=True)
+    seed_everything(SEED, workers=True)
 
     # Infer batch size and GPUs
     batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
@@ -93,6 +95,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         "Compute Node": compute_node,
         "Experiment": EXPERIMENT,
         "Run Prefix": prefix,
+        "Seed": SEED,
         "Model Type": MODEL_TYPE,
         "Data Subset": DATA_SUBSET,
         "Data Dimension": DIM,
@@ -107,6 +110,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         "Used GPUs": used_gpus,
         "Initial Learning Rate": LEARNING_RATE,
         "Experiment Notes": EXPERIMENT_NOTES,
+        "Final Version": FINAL_VERSION,
     }
 
     # Prepare data sets and loaders
@@ -120,17 +124,24 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         temporal_processes=TEMPORAL_PROCESS,
     )
 
-    train_set, val_set, test_set = DataSetFactory(
+    ds_factory = DataSetFactory(
         train_ids=data_split["train"],
         val_ids=data_split["val"],
         test_ids=data_split["test"],
         base_config=base_config,
         anat_feature_maps=ANAT_FEATURE_MAPS,
         func_feature_maps=FUNC_FEATURE_MAPS,
-    ).create_data_sets()
+    )
+
+    if FINAL_VERSION:
+        train_set, test_set = ds_factory.create_train_test_sets()
+        val_set = None  # No validation set in final version
+    else:
+        train_set, val_set, test_set = ds_factory.create_data_sets()
+        val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
 
     train_loader = prepare_standard_data_loaders(train_set, batch_size=batch_size)
-    val_loader = prepare_standard_data_loaders(val_set, batch_size=batch_size)
+    test_loader = prepare_standard_data_loaders(test_set, batch_size=batch_size, shuffle=False)
 
     # Derive the amount of channels for the feature maps
     anat_channels = len(ANAT_FEATURE_MAPS) if ANAT_FEATURE_MAPS else 0
@@ -211,7 +222,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     trainer.fit(
         model=lightning_wrapper,
         train_dataloaders=train_loader,
-        val_dataloaders=val_loader,
+        val_dataloaders=val_loader if not FINAL_VERSION else test_loader,
     )
 
     # Clean up the trainer and CUDA operations
@@ -235,8 +246,6 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         logger=logger,
     )
 
-    # Prepare the test data loader
-    test_loader = prepare_standard_data_loaders(test_set, batch_size=batch_size)
     # Load the model checkpoint
     wrapper_class = MultiModalityWrapper if DUAL_MODALITY else OneCycleWrapper
     model_checkpoint_dir = Path(logger.log_dir, "checkpoints")
