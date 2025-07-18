@@ -47,11 +47,11 @@ from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
 SEED = 404 # 27, 42, 404, 1312, 1984
-TARGET = "sex" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
+TARGET = "phq9_sum" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
 TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
-DATA_SUBSET = "big_sample"  # "big_sample", "low", "medium", "high", "phq9_cutoff"
+DATA_SUBSET = "phq9_cutoff"  # "big_sample", "low", "medium", "high", "phq9_cutoff"
 DIM = "3D"
-EXPERIMENT = f"{SEED}_{DIM}_{TARGET}_final"
+EXPERIMENT = f"{DIM}_{TARGET}_final"
 
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
@@ -62,7 +62,7 @@ ANAT_FEATURE_MAPS: list[FeatureMapType] = [
 ]
 FUNC_FEATURE_MAPS: list[FeatureMapType] = [
     # FeatureMapType.REHO,
-    # FeatureMapType.BOLD,
+    FeatureMapType.BOLD,
 ]
 DUAL_MODALITY = (
     True if len(ANAT_FEATURE_MAPS) > 0 and len(FUNC_FEATURE_MAPS) > 0 else False
@@ -91,18 +91,19 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     # Infer batch size and GPUs
     batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
     num_gpus = infer_gpu_count(compute_node, num_gpus)
-    # used_gpus = allocated_free_gpus(num_gpus)
-    used_gpus = [6,7]
+    used_gpus = allocated_free_gpus(num_gpus)
+    # used_gpus = [0,4]
     # used_gpus = [4,5,6,7] if compute_node == "cuda01" else [2,3]
     log_dir = Path("models") if EPOCHS > 20 else Path("models_test")
 
+    experiment = f"{seed}_{EXPERIMENT}"
     experiment_notes = {
     "notes": f"Final results for {seed} run for {TARGET} in {DIM}",
 }
 
     print_collection_dict = {
         "Compute Node": compute_node,
-        "Experiment": EXPERIMENT,
+        "Experiment": experiment,
         "Run Prefix": prefix,
         "Seed": seed,
         "Model Type": MODEL_TYPE,
@@ -184,7 +185,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     model_name = construct_model_name(
         lightning_wrapper.model,
         train_set,
-        experiment=EXPERIMENT,
+        experiment=experiment,
         compute_node=compute_node,
     )
 
@@ -498,7 +499,7 @@ if __name__ == "__main__":
     # check_cuda()
     parser = setup_parser()
     args = parser.parse_args()
-    train_model(args.num_gpus, args.compute_node, args.prefix)
+    train_model(args.num_gpus, args.compute_node, args.prefix, args.seed)
     # separate_test_phase(
     #     checkpoint_file_path=Path("/home/julius/repositories/ccn_code/models_test/250716_cuda01_1312_3D_age_final_ResNet18Regression3d_age_raw_T1/version_0/checkpoints/epoch=39-step=2800.ckpt"),
     #     selected_gpu=1,
