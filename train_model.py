@@ -47,22 +47,22 @@ from src.utils.file_path_helper import construct_model_name
 
 # Global variables for training parameters
 SEED = 404 # 27, 42, 404, 1312, 1984
-TARGET = "phq9_sum" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
+TARGET = "phq9_cutoff" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
 TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
-DATA_SUBSET = "phq9_cutoff"  # "big_sample", "low", "medium", "high", "phq9_cutoff"
+DATA_SUBSET = "phq9_cutoff"  # "big_sample", "low", "medium", "high", "phq9_cutoff", "gad7_cutoff"
 DIM = "3D"
 EXPERIMENT = f"{DIM}_{TARGET}_final"
 
 
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
-    FeatureMapType.GM,
-    FeatureMapType.WM,
-    FeatureMapType.CSF,
-    # FeatureMapType.T1,
+    # FeatureMapType.GM,
+    # FeatureMapType.WM,
+    # FeatureMapType.CSF,
+    FeatureMapType.T1,
 ]
 FUNC_FEATURE_MAPS: list[FeatureMapType] = [
     # FeatureMapType.REHO,
-    FeatureMapType.BOLD,
+    # FeatureMapType.BOLD,
 ]
 DUAL_MODALITY = (
     True if len(ANAT_FEATURE_MAPS) > 0 and len(FUNC_FEATURE_MAPS) > 0 else False
@@ -79,6 +79,7 @@ EPOCHS = 40
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
 FINAL_VERSION = True  # Set to True for final version, False for testing
 
+TEST_CHECKPOINT_PATH = Path("/home/julius/repositories/ccn_code/models/250722_cuda01_404_3D_gad7_cutoff_final_ResNet18Binary3dDualModality_gad7_cutoff_anat-func_T1_bold/version_0/checkpoints/epoch=39-step=1440.ckpt") 
 
 def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = None, seed: int = SEED):
     """Handles all the logic for training the model."""
@@ -92,7 +93,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
-    # used_gpus = [0,4]
+    # used_gpus = [5]
     # used_gpus = [4,5,6,7] if compute_node == "cuda01" else [2,3]
     log_dir = Path("models") if EPOCHS > 20 else Path("models_test")
 
@@ -239,6 +240,9 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     del trainer  # Explicitly delete the trainer object
     torch.cuda.empty_cache()  # Clear CUDA memory cache
 
+    # Allow for any pending operations to complete
+    time.sleep(20)
+
     print("Entering testing phase...")
     test_trainer_config = LightningTrainerConfig(
         # devices=allocated_free_gpus(1),  # Use the same number of GPUs for testing
@@ -270,6 +274,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
         task=TASK,
         learning_rate=LEARNING_RATE,
     )
+
     # Run the test step
     test_trainer.test(
         model=lightning_wrapper,
@@ -501,7 +506,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     train_model(args.num_gpus, args.compute_node, args.prefix, args.seed)
     # separate_test_phase(
-    #     checkpoint_file_path=Path("/home/julius/repositories/ccn_code/models_test/250716_cuda01_1312_3D_age_final_ResNet18Regression3d_age_raw_T1/version_0/checkpoints/epoch=39-step=2800.ckpt"),
+    #     checkpoint_file_path=TEST_CHECKPOINT_PATH,
     #     selected_gpu=1,
     #     compute_node="cuda02"
     # )

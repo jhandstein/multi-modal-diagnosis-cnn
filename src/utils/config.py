@@ -23,6 +23,7 @@ MEDIUM_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_medium_quality_ids.json")
 HIGH_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_high_quality_ids.json")
 
 PHQ9_CUTOFF_SPLIT_PATH = Path(SPLIT_PATH, "phq9_cutoff_split.json")
+GAD7_CUTOFF_SPLIT_PATH = Path(SPLIT_PATH, "gad7_cutoff_split.json")
 
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")

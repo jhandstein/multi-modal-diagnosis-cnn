@@ -1,3 +1,4 @@
+from typing import Literal
 from src.data_management.data_set_factory import DataSetFactory
 from src.data_management.data_set import BaseDataSetConfig
 from src.utils.config import FeatureMapType
@@ -6,6 +7,7 @@ from tqdm import tqdm
 
 
 def cache_data_set(
+    dim: Literal["2D", "3D"],
     train_ids: list[int],
     val_ids: list[int],
     test_ids: list[int],
@@ -27,10 +29,10 @@ def cache_data_set(
         target="age",
         temporal_processes=[
             "mean",
-            "variance",
-            "tsnr"
+            # "variance",
+            # "tsnr"
         ],
-        middle_slice=False,
+        middle_slice=False if dim == "2D" else True,
     )
 
     # Create the dataset factory
@@ -40,10 +42,10 @@ def cache_data_set(
         test_ids=test_ids,
         base_config=base_config,
         anat_feature_maps=[
-            # FeatureMapType.GM,
-            # FeatureMapType.WM,
-            # FeatureMapType.CSF,
-            # FeatureMapType.T1
+            FeatureMapType.GM,
+            FeatureMapType.WM,
+            FeatureMapType.CSF,
+            FeatureMapType.T1
         ],
         func_feature_maps=[
             # FeatureMapType.REHO,
@@ -52,6 +54,9 @@ def cache_data_set(
     )
 
     train_set, val_set, test_set = dataset_factory.create_data_sets()
+
+    print(f"Started caching data sets with {len(train_set)} training, "
+          f"{len(val_set)} validation, and {len(test_set)} test samples.")
     
     # Cache the datasets using data loaders
     for dataset in [train_set, val_set, test_set]:

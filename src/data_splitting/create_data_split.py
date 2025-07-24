@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+
+from src.data_splitting.load_targets import extract_targets
 
 
 @dataclass
@@ -23,7 +24,7 @@ class DataSplitFile:
             return json.load(file)
 
 
-def create_balanced_sample(labels: pd.Series, sample_size: int) -> pd.Series:
+def create_balanced_sample(labels: pd.Series, sample_size: int, seed: int=42) -> pd.Series:
     """
     Create balanced sample from binary labels
 
@@ -41,7 +42,7 @@ def create_balanced_sample(labels: pd.Series, sample_size: int) -> pd.Series:
 
     # Group by label and sample from each group
     balanced_sample = (
-        labels.groupby(labels).sample(n=n_per_class).sample(frac=1)
+        labels.groupby(labels).sample(n=n_per_class, random_state=seed).sample(frac=1)
     )  # shuffle
 
     return balanced_sample
@@ -89,6 +90,22 @@ def find_min_minority_class_count(labels_series: list[pd.Series]) -> int:
         
     return min(min_counts)
 
+
+def reshuffle_train_val_splits(split_path: Path, seed: int) -> None:
+    """Create a freshly shuffled train and validation split from the original splits."""
+    split_file = DataSplitFile(split_path)
+    data_splits = split_file.load_data_splits_from_file()
+    all_ids = data_splits["train"] + data_splits["val"]
+    len_train = len(data_splits["train"])
+
+    # Reshuffle the IDs
+    target_series = extract_targets("age", all_ids)
+    new_train = create_balanced_sample(target_series, len_train, seed=seed)
+
+    # drop the IDs from the new train set from the series to create the new validation set
+    remaining_ids = target_series.drop(new_train.index.to_list())
+
+    check_split_results(new_train, remaining_ids, pd.Series(dtype=int))
 
 def check_split_results(train: pd.Series, val: pd.Series, test: pd.Series) -> None:
     """Check the split results for balanced samples."""

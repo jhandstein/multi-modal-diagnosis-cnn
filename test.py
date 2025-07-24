@@ -20,6 +20,7 @@ from src.utils.config import (
     LOW_QUALITY_IDS,
     MEDIUM_QUALITY_IDS,
     PHQ9_CUTOFF_SPLIT_PATH,
+    GAD7_CUTOFF_SPLIT_PATH,
     QUALITY_SPLITS_PATH,
     FeatureMapType,
 )
@@ -78,16 +79,24 @@ if __name__ == "__main__":
     #         temporal_process=tp
     #     )
 
-    data_split = DataSplitFile(PHQ9_CUTOFF_SPLIT_PATH).load_data_splits_from_file()
+    # data_split = DataSplitFile(GAD7_CUTOFF_SPLIT_PATH).load_data_splits_from_file()
 
-    cache_data_set(data_split["train"], data_split["val"], data_split["test"])
+    # cache_data_set("2D", data_split["train"], data_split["val"], data_split["test"], num_workers=8)
 
-    # sampler = PhenotypeSampler("systolic_blood_pressure")
+    # advanced_phenotype = "gad7_cutoff"
+    # sampler = PhenotypeSampler(advanced_phenotype)
     # subjects = sampler.sample_binary_dataset()
     # sampler.check_sample_age_sex_distribution(subjects)
-    # sampler.split_and_save_binary_sample(subjects, PHQ9_CUTOFF_SPLIT_PATH)
+    # sampler.split_and_save_binary_sample(subjects, GAD7_CUTOFF_SPLIT_PATH)
 
-    # sampler.check_sample_age_sex_distribution(sampler.target_values)
-
-    # train, val, test = generate_sample_data_sets(label="phq9_cutoff", middle_slice=True)
+    # train, val, test = generate_sample_data_sets(label=advanced_phenotype, middle_slice=True)
     # print(train.target, train.labels.value_counts())
+
+    # phenotype_split_file = DataSplitFile(GAD7_CUTOFF_SPLIT_PATH)
+    # split = phenotype_split_file.load_data_splits_from_file()
+
+    # print(f"Train set size: {len(split['train'])}")
+    # print(f"Validation set size: {len(split['val'])}")
+    # print(f"Test set size: {len(split['test'])}")
+
+    calc_loss_based_on_target_mean(label="phq9_sum", data_path=PHQ9_CUTOFF_SPLIT_PATH)
