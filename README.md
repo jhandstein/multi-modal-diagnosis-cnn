@@ -2,11 +2,11 @@
 This project provides a flexible framework for predicting neural phenotypes from MRI data using convolutional neural networks (CNNs), specifically ResNet18 architectures. The framework supports multi-modal and multi-dimensional MRI feature maps, enabling both anatomical and functional data to be used for classification or regression tasks (e.g., age, sex, PHQ-9, GAD-7).
 
 ## Key Features:
-Flexible Data Handling: Supports different MRI feature maps (e.g., T1, GM, BOLD) and spatial dimensions (2D/3D).
-Multi-Modality: Easily combine anatomical and functional modalities.
-Custom Data Splitting: Advanced phenotype-based and quality-based data splits.
-Training & Evaluation: Modular training pipeline with PyTorch Lightning, including logging, metrics, and plotting.
-Extensible: Modular codebase for easy adaptation to new tasks or data types.
+- Flexible Data Handling: Supports different MRI feature maps (e.g., T1, GM, BOLD) and spatial dimensions (2D/3D).
+- Multi-Modality: Easily combine anatomical and functional modalities.
+- Custom Data Splitting: Advanced phenotype-based and quality-based data splits.
+- Training & Evaluation: Modular training pipeline with PyTorch Lightning, including logging, metrics, and plotting.
+- Extensible: Modular codebase for easy adaptation to new tasks or data types.
 
 ## Folder Structure
 - building_blocks/
