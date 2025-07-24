@@ -10,15 +10,19 @@ Extensible: Modular codebase for easy adaptation to new tasks or data types.
 
 ## Folder Structure
 - building_blocks/
+
 Core model components, wrappers, and training utilities (e.g., model factory, Lightning wrappers, metrics callbacks).
 
 - data_management/
+
 Data loading, normalization, dataset configuration, and feature map handling.
 
 - data_splitting/
+
 Advanced subject selection, phenotype-based and quality-based splitting, and split file management.
 
 - plots/
+
 Visualization utilities for MRI slices, metrics, and age distributions.
 
 - utils/
