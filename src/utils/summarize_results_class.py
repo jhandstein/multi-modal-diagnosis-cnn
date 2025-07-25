@@ -5,6 +5,7 @@ from typing import Literal
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm  # <-- add this import
 
 PARENT_FOLDER_2D = Path(
     "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results"
@@ -13,10 +14,17 @@ PARENT_FOLDER_3D = Path(
     "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results/_3D"
 )
 
+PLOT_FOLDER = Path(
+    "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/ccn-code/plots"
+)
+
 class ResultsSummarizer:
     def __init__(self, parent_folder_2d=PARENT_FOLDER_2D, parent_folder_3d=PARENT_FOLDER_3D):
         self.parent_folder_2d = parent_folder_2d
         self.parent_folder_3d = parent_folder_3d
+
+        # Ensure plot folder exists
+        PLOT_FOLDER.mkdir(parents=True, exist_ok=True)
 
         self.class_2d = None
         self.reg_2d = None
@@ -49,8 +57,41 @@ class ResultsSummarizer:
                 caption="Regression Summary by Feature Map and Dimensionality",
                 label="tab:regression_summary"
             )
-           
-            self.plot_merged_classification_bar(self.merged_class)
+
+            # Calculate and plot standard deviations for 2D and 3D results
+            # generic_title = f"(2D vs. 3D)"
+
+            # std_acc_2d = self.get_metric_std_by_feature_map(self.classification_all_seeds_2d, "test_accuracy")
+            # std_acc_3d = self.get_metric_std_by_feature_map(self.classification_all_seeds_3d, "test_accuracy")
+            # print("\nStandard Deviation of Test Accuracy by Feature Map:")
+            # print("2D:", std_acc_2d)
+            # print("3D:", std_acc_3d)
+            # self.plot_merged_bar(self.merged_class, metric="Accuracy", std_2d=std_acc_2d, std_3d=std_acc_3d, ylabel="Accuracy", title=f"Final results for Sex Classification {generic_title}")
+
+            # std_mae_2d = self.get_metric_std_by_feature_map(self.regression_all_seeds_2d, "test_mae")
+            # std_mae_3d = self.get_metric_std_by_feature_map(self.regression_all_seeds_3d, "test_mae")
+            # print("\nStandard Deviation of Test MAE by Feature Map:")
+            # print("2D:", std_mae_2d)
+            # print("3D:", std_mae_3d)
+            # self.plot_merged_bar(self.merged_reg, metric="MAE", std_2d=std_mae_2d, std_3d=std_mae_3d, ylabel="MAE", title=f"Final results for Age Regression {generic_title}")
+
+            # Print std of all metrics by feature map
+            print("\nStandard Deviation of All Classification Metrics by Feature Map (2D):")
+            std_2d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_2d)
+            print(std_2d)
+            print("\nStandard Deviation of All Classification Metrics by Feature Map (3D):")
+            std_3d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_3d)
+            print(std_3d)
+
+            print("\nStandard Deviation of All Regression Metrics by Feature Map (2D):")
+            std_2d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_2d)
+            print(std_2d_reg)
+            print("\nStandard Deviation of All Regression Metrics by Feature Map (3D):")
+            std_3d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_3d)
+            print(std_3d_reg)
+
+
+
         else:
             self.class_2d, self.reg_2d = self.process_parent_folder(self.parent_folder_2d)
             print("Classification Summary:")
@@ -71,45 +112,57 @@ class ResultsSummarizer:
             )
 
     def process_parent_folder(self, parent_folder: Path):
-        seeds = [42, 404, 1312] if "3D" in str(parent_folder) else [27, 42, 404, 1312, 1984]
+        dim = "3D" if "3D" in str(parent_folder) else "2D"
+        seeds = [42, 404, 1312] if dim in str(parent_folder) else [27, 42, 404, 1312, 1984]
         all_seed_results = []
         for seed in seeds:
             print(f"Loading results for seed {seed} in {parent_folder}...")
             all_seed_results.append(self.load_seed_data(seed, parent_folder))
-        self.classification_all_seeds = self.combine_seed_results(all_seed_results, "classification")
-        self.regression_all_seeds = self.combine_seed_results(all_seed_results, "regression")
+        classification_all_seeds = self.combine_seed_results(all_seed_results, "classification")
+        regression_all_seeds = self.combine_seed_results(all_seed_results, "regression")
+
+        if dim == "2D":
+            self.classification_all_seeds_2d = classification_all_seeds
+            self.regression_all_seeds_2d = regression_all_seeds
+        else:
+            self.classification_all_seeds_3d = classification_all_seeds
+            self.regression_all_seeds_3d = regression_all_seeds
         print("\nCombined Results:")
         print("Classification Results:")
-        print(self.classification_all_seeds)
+        print(classification_all_seeds)
         print("\nRegression Results:")
-        print(self.regression_all_seeds)
-        classification_summary = self.summarize_by_feature_map(self.classification_all_seeds, parent_folder)
-        regression_summary = self.summarize_by_feature_map(self.regression_all_seeds, parent_folder)
+        print(regression_all_seeds)
+        classification_summary = self.summarize_by_feature_map(classification_all_seeds, parent_folder)
+        regression_summary = self.summarize_by_feature_map(regression_all_seeds, parent_folder)
         classification_summary = self.prettify_df(classification_summary, "classification", parent_folder)
         regression_summary = self.prettify_df(regression_summary, "regression", parent_folder)
         return classification_summary, regression_summary
 
-    def plot_merged_classification_bar(self, merged_class, std_2d=None, std_3d=None):
-        metric = "Accuracy"
-        feature_maps = merged_class['2D'].columns.tolist()
+    def plot_merged_bar(self, merged_df, metric="Accuracy", std_2d=None, std_3d=None, ylabel="Accuracy", title="2D vs 3D by Feature Map"):
+        feature_maps = merged_df['2D'].columns.tolist()
         n_feature_maps = len(feature_maps)
         bar_width = 0.35
         x = np.arange(n_feature_maps)
         fig, ax = plt.subplots(figsize=(8, 5))
-        colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
-        acc_2d = merged_class['2D'].loc[metric].values
-        acc_3d = merged_class['3D'].loc[metric].values
-        err_2d = std_2d if std_2d is not None else np.zeros_like(acc_2d)
-        err_3d = std_3d if std_3d is not None else np.zeros_like(acc_3d)
-        ax.bar(x - bar_width/2, acc_2d, width=bar_width, label='2D', color=colors[:n_feature_maps], yerr=err_2d, capsize=5)
-        ax.bar(x + bar_width/2, acc_3d, width=bar_width, label='3D', color=colors[:n_feature_maps], alpha=0.6, yerr=err_3d, capsize=5)
+        # Use Dark2 colormap for colors
+        dark2 = cm.get_cmap('Dark2')
+        colors = [dark2(i) for i in range(n_feature_maps)]
+        values_2d = merged_df['2D'].loc[metric].values
+        values_3d = merged_df['3D'].loc[metric].values
+        err_2d = std_2d if std_2d is not None else np.zeros_like(values_2d)
+        err_3d = std_3d if std_3d is not None else np.zeros_like(values_3d)
+        ax.bar(x - bar_width/2, values_2d, width=bar_width, label='2D', color=colors, yerr=err_2d, capsize=5)
+        ax.bar(x + bar_width/2, values_3d, width=bar_width, label='3D', color=colors, alpha=0.6, yerr=err_3d, capsize=5)
         ax.set_xticks(x)
         ax.set_xticklabels(feature_maps)
-        ax.set_ylabel('Accuracy')
-        ax.set_title('2D vs 3D Classification Accuracy by Feature Map')
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
         ax.legend()
         plt.tight_layout()
-        plt.show()
+        # Save plot to PLOT_FOLDER
+        filename = f"{title.replace(' ', '_')}_{metric}.png"
+        plt.savefig(PLOT_FOLDER / filename)
+        plt.close(fig)
 
     def get_metric_std_by_feature_map(self, df: pd.DataFrame, metric: str) -> pd.Series:
         """
@@ -117,6 +170,16 @@ class ResultsSummarizer:
         Example: metric="test_accuracy" for classification, metric="test_mae" for regression.
         """
         return df.groupby("feature_maps")[metric].std()
+    
+    def get_all_metrics_std_by_feature_map(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Returns std of all metrics for each feature map.
+        Output: DataFrame with metrics as rows and feature maps as columns.
+        """
+        metrics = [col for col in df.columns if col not in ["feature_maps", "seed"]]
+        std_df = df.groupby("feature_maps")[metrics].std().T
+        std_df.columns.name = "Feature Map"
+        return std_df
 
     def merge_2d_3d_tables(self, summary_2d: pd.DataFrame, summary_3d: pd.DataFrame) -> pd.DataFrame:
         summary_2d.columns = pd.MultiIndex.from_product([["2D"], summary_2d.columns])
