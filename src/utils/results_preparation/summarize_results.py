@@ -5,18 +5,35 @@ from typing import Literal
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm  # <-- add this import
+from matplotlib import cm 
 
 PARENT_FOLDER_2D = Path(
-    "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results"
+    # "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results"
+    # "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/gad7"
+    "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/phq9"
 )
 PARENT_FOLDER_3D = Path(
-    "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results/_3D"
+    # "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250710_final_results/_3D"
+    # "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/gad7/_3D"
+    "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/phq9/_3D"
 )
 
 PLOT_FOLDER = Path(
     "/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/ccn-code/plots"
 )
+
+TAB10_COLORS = cm.get_cmap('tab10', 10)
+DARK2_COLORS = cm.get_cmap('Dark2', 8)
+SET2_COLORS = cm.get_cmap('Set2', 8)
+
+PLOT_COLORS = {
+    "T1": TAB10_COLORS(0),
+    "MORPH": DARK2_COLORS(0),
+    "BOLD": TAB10_COLORS(1),
+    "ReHo": SET2_COLORS(5),
+    "T1+BOLD": DARK2_COLORS(3),
+    "MORPH+BOLD": TAB10_COLORS(3),
+}
 
 class ResultsSummarizer:
     def __init__(self, parent_folder_2d=PARENT_FOLDER_2D, parent_folder_3d=PARENT_FOLDER_3D):
@@ -41,6 +58,13 @@ class ResultsSummarizer:
             self.class_3d, self.reg_3d = self.process_parent_folder(self.parent_folder_3d)
             self.merged_class = self.merge_2d_3d_tables(self.class_2d, self.class_3d)
             self.merged_reg = self.merge_2d_3d_tables(self.reg_2d, self.reg_3d)
+
+            # Calculate std for 2D and 3D
+            std_class_2d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_2d)
+            std_class_3d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_3d)
+            std_reg_2d = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_2d)
+            std_reg_3d = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_3d)
+
             print("\nMerged Classification Summary (2D vs 3D):")
             print(self.merged_class)
             print("\nMerged Regression Summary (2D vs 3D):")
@@ -49,46 +73,53 @@ class ResultsSummarizer:
             self.print_latex_table(
                 self.merged_class,
                 caption="Classification Summary by Feature Map and Dimensionality",
-                label="tab:classification_summary"
+                label="tab:classification_summary",
+                std_2d=std_class_2d,
+                std_3d=std_class_3d
             )
             print("\nLaTeX Regression Table:")
             self.print_latex_table(
                 self.merged_reg,
                 caption="Regression Summary by Feature Map and Dimensionality",
-                label="tab:regression_summary"
+                label="tab:regression_summary",
+                std_2d=std_reg_2d,
+                std_3d=std_reg_3d
             )
 
             # Calculate and plot standard deviations for 2D and 3D results
-            # generic_title = f"(2D vs. 3D)"
+            generic_title = f"(2D vs. 3D)"
+            classification_target = "PHQ-9 Cutoff" # "PHQ-9 Cutoff" or "GAD-7 Cutoff" or "Sex"
+            regression_target = "PHQ-9 Score" # "PHQ-9 Score" or "GAD-7 Score" or "Age"
+            prefix = "Final results" if "final" in str(self.parent_folder_2d) else "Results"
 
-            # std_acc_2d = self.get_metric_std_by_feature_map(self.classification_all_seeds_2d, "test_accuracy")
-            # std_acc_3d = self.get_metric_std_by_feature_map(self.classification_all_seeds_3d, "test_accuracy")
-            # print("\nStandard Deviation of Test Accuracy by Feature Map:")
-            # print("2D:", std_acc_2d)
-            # print("3D:", std_acc_3d)
-            # self.plot_merged_bar(self.merged_class, metric="Accuracy", std_2d=std_acc_2d, std_3d=std_acc_3d, ylabel="Accuracy", title=f"Final results for Sex Classification {generic_title}")
+            std_acc_2d = self.get_metric_std_by_feature_map(self.classification_all_seeds_2d, "test_accuracy")
+            std_acc_3d = self.get_metric_std_by_feature_map(self.classification_all_seeds_3d, "test_accuracy")
+            print("\nStandard Deviation of Test Accuracy by Feature Map:")
+            print("2D:", std_acc_2d)
+            print("3D:", std_acc_3d)
+            self.plot_merged_bar(self.merged_class, metric="Accuracy", std_2d=std_acc_2d, std_3d=std_acc_3d, ylabel="Accuracy", title=f"{prefix} for {classification_target} Classification {generic_title}")
 
-            # std_mae_2d = self.get_metric_std_by_feature_map(self.regression_all_seeds_2d, "test_mae")
-            # std_mae_3d = self.get_metric_std_by_feature_map(self.regression_all_seeds_3d, "test_mae")
-            # print("\nStandard Deviation of Test MAE by Feature Map:")
-            # print("2D:", std_mae_2d)
-            # print("3D:", std_mae_3d)
-            # self.plot_merged_bar(self.merged_reg, metric="MAE", std_2d=std_mae_2d, std_3d=std_mae_3d, ylabel="MAE", title=f"Final results for Age Regression {generic_title}")
+            std_mae_2d = self.get_metric_std_by_feature_map(self.regression_all_seeds_2d, "test_mae")
+            std_mae_3d = self.get_metric_std_by_feature_map(self.regression_all_seeds_3d, "test_mae")
+            print("\nStandard Deviation of Test MAE by Feature Map:")
+            print("2D:", std_mae_2d)
+            print("3D:", std_mae_3d)
+            self.plot_merged_bar(self.merged_reg, metric="MAE", std_2d=std_mae_2d, std_3d=std_mae_3d, ylabel="MAE", title=f"{prefix} for {regression_target} Regression {generic_title}")
 
             # Print std of all metrics by feature map
-            print("\nStandard Deviation of All Classification Metrics by Feature Map (2D):")
-            std_2d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_2d)
-            print(std_2d)
-            print("\nStandard Deviation of All Classification Metrics by Feature Map (3D):")
-            std_3d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_3d)
-            print(std_3d)
+            # print("\nStandard Deviation of All Classification Metrics by Feature Map (2D):")
+            # std_2d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_2d)
+            # print(std_2d)
+            # print("\nStandard Deviation of All Classification Metrics by Feature Map (3D):")
+            # std_3d = self.get_all_metrics_std_by_feature_map(self.classification_all_seeds_3d)
+            # print(std_3d)
 
-            print("\nStandard Deviation of All Regression Metrics by Feature Map (2D):")
-            std_2d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_2d)
-            print(std_2d_reg)
-            print("\nStandard Deviation of All Regression Metrics by Feature Map (3D):")
-            std_3d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_3d)
-            print(std_3d_reg)
+            # print("\nStandard Deviation of All Regression Metrics by Feature Map (2D):")
+            # std_2d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_2d)
+            # print(std_2d_reg)
+            # print("\nStandard Deviation of All Regression Metrics by Feature Map (3D):")
+            # std_3d_reg = self.get_all_metrics_std_by_feature_map(self.regression_all_seeds_3d)
+            # print(std_3d_reg)
 
 
 
@@ -144,9 +175,8 @@ class ResultsSummarizer:
         bar_width = 0.35
         x = np.arange(n_feature_maps)
         fig, ax = plt.subplots(figsize=(8, 5))
-        # Use Dark2 colormap for colors
-        dark2 = cm.get_cmap('Dark2')
-        colors = [dark2(i) for i in range(n_feature_maps)]
+        # Assign colors from PLOT_COLORS dictionary
+        colors = [PLOT_COLORS.get(fm, 'gray') for fm in feature_maps]
         values_2d = merged_df['2D'].loc[metric].values
         values_3d = merged_df['3D'].loc[metric].values
         err_2d = std_2d if std_2d is not None else np.zeros_like(values_2d)
@@ -187,16 +217,45 @@ class ResultsSummarizer:
         merged = pd.concat([summary_2d, summary_3d], axis=1)
         return merged
 
-    def print_latex_table(self, merged_df: pd.DataFrame, caption: str, label: str):
-        latex = merged_df.to_latex(
+    def print_latex_table(self, merged_df: pd.DataFrame, caption: str, label: str, std_2d: pd.DataFrame = None, std_3d: pd.DataFrame = None):
+        # Prepare formatted DataFrame with mean ± std
+        formatted_df = merged_df.copy()
+        # Helper to format value ± std
+        def format_cell(mean, std):
+            if pd.isna(mean):
+                return "--"
+            if pd.isna(std):
+                return f"{mean:.3f}".rstrip("0").rstrip(".")
+            return f"${mean:.3f} \\pm {std:.3f}$"
+        # Iterate over columns and rows to format
+        for dim, std_df in zip(["2D", "3D"], [std_2d, std_3d]):
+            if std_df is None:
+                continue
+            for col in merged_df[dim].columns:
+                for idx in merged_df.index:
+                    mean = merged_df[dim].loc[idx, col]
+                    # Map pretty index/column to raw metric/feature_map for std lookup
+                    # Reverse prettify mapping
+                    metric_map = {
+                        "BCELoss": "test_loss", "Accuracy": "test_accuracy", "AUC": "test_auc", "F1": "test_f1",
+                        "MSELoss": "test_loss", "MAE": "test_mae", "R2": "test_r2", "Spearman": "test_spearman"
+                    }
+                    col_map = {
+                        "T1": "T1", "MORPH": "GM_WM_CSF", "BOLD": "bold", "MORPH+BOLD": "GM_WM_CSF_bold",
+                        "ReHo": "reho", "T1+BOLD": "T1_bold"
+                    }
+                    metric_raw = metric_map.get(idx, idx)
+                    col_raw = col_map.get(col, col)
+                    std = std_df.loc[metric_raw, col_raw] if metric_raw in std_df.index and col_raw in std_df.columns else None
+                    formatted_df.at[idx, (dim, col)] = format_cell(mean, std)
+        latex = formatted_df.to_latex(
             multicolumn=True,
             multirow=False,
             caption=caption,
             label=label,
             escape=False,
-            column_format="l|" + "r" * int(merged_df.shape[1] * 0.5) + "|" + "r" * int(merged_df.shape[1] * 0.5),
-            na_rep="--",
-            float_format=lambda x: f"{x:.3f}".rstrip("0").rstrip(".") if isinstance(x, float) else x
+            column_format="l|" + "r" * int(formatted_df.shape[1] * 0.5) + "|" + "r" * int(formatted_df.shape[1] * 0.5),
+            na_rep="--"
         )
         print(latex)
 
@@ -217,12 +276,12 @@ class ResultsSummarizer:
             "T1": "T1",
             "GM_WM_CSF": "MORPH",
             "bold": "BOLD",
-            "GM_WM_CSF_bold": "MORPH/BOLD",
+            "GM_WM_CSF_bold": "MORPH+BOLD",
         }
         if "phq9" in str(parent_folder) or "gad7" in str(parent_folder):
             column_labels.update({
                 "reho": "ReHo",
-                "T1_bold": "T1/BOLD",
+                "T1_bold": "T1+BOLD",
             })
         df = df.rename(index=index_labels)
         df = df.rename(columns=column_labels)
@@ -243,7 +302,8 @@ class ResultsSummarizer:
         summary.columns.name = "Metric"
         order = ["T1", "GM_WM_CSF", "bold", "GM_WM_CSF_bold"]
         if "phq9" in str(parent_folder) or "gad7" in str(parent_folder):
-            order.extend(["reho", "T1_bold"])
+            # order.extend(["reho", "T1_bold"])
+            order = ["T1", "GM_WM_CSF", "bold", "reho", "T1_bold" , "GM_WM_CSF_bold"]
         summary = summary[order]
         return summary
 
