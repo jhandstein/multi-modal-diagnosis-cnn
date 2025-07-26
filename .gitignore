@@ -1,13 +1,24 @@
-**/lightning_logs/*
+# Python and environment files
+.venv/**
+grid-env/**
 **/__pycache__/**
+
+# Lightning logs and models
+**/lightning_logs/*
 models/**
 models_test/**
+
+# Nohup and output files
 nohup.out
 **_file.out
 **_training.out
+
+# Plots, figures and local files
 assets/**
-.venv/**
 .lr_find_**
 **/lr_finder_results.png
-grid-env/**
+**/plots/**
 **/subject_ids.txt
+
+# MacOS specific files
+**/.DS_Store
