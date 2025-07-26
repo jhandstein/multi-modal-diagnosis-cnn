@@ -1,4 +1,4 @@
-from src.data_management.create_data_split import DataSplitFile
+from src.data_splitting.create_data_split import DataSplitFile
 from src.data_management.data_set import BaseDataSetConfig, NakoSingleModalityDataset
 from src.data_management.data_set_factory import DataSetFactory
 from src.utils.config import AGE_SEX_BALANCED_10K_PATH, FeatureMapType

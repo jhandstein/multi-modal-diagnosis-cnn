@@ -10,10 +10,20 @@ SPLIT_PATH = Path("assets/data_splits")
 AGE_SEX_BALANCED_1K_PATH = Path(SPLIT_PATH, "age_sex_split_1k.json")
 AGE_SEX_BALANCED_10K_PATH = Path(SPLIT_PATH, "age_sex_split_10k.json")
 
+RESHUFFLED_27_PATH = Path(SPLIT_PATH, "reshuffled_27.json")
+# RESHUFFLED_42_PATH = Path(SPLIT_PATH, "reshuffled_42.json")
+RESHUFFLED_1984_PATH = Path(SPLIT_PATH, "reshuffled_1984.json")
+RESHUFFLED_1312_PATH = Path(SPLIT_PATH, "reshuffled_1312.json")
+RESHUFFLED_404_PATH = Path(SPLIT_PATH, "reshuffled_404.json")
+
+
 QUALITY_SPLITS_PATH = Path(SPLIT_PATH, "quality_split_fd_cnr.json")
 LOW_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_low_quality_ids.json")
 MEDIUM_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_medium_quality_ids.json")
 HIGH_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_high_quality_ids.json")
+
+PHQ9_CUTOFF_SPLIT_PATH = Path(SPLIT_PATH, "phq9_cutoff_split.json")
+GAD7_CUTOFF_SPLIT_PATH = Path(SPLIT_PATH, "gad7_cutoff_split.json")
 
 # Important file paths
 NAKO_PATH = Path("/ritter/share/data/NAKO")
@@ -32,6 +42,10 @@ AVAILABLE_SUBJECT_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_bothMRI_successfull.txt",
 )
+
+FAULTY_SAMPLE_IDS = [
+    127569 # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
+]  
 
 # IDs for the subjects that have high quality sMRI and fMRI data
 # High quality fMRI also means that sMRI is high quality..?

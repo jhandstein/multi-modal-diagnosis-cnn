@@ -18,6 +18,7 @@ assets/**
 .lr_find_**
 **/lr_finder_results.png
 **/plots/**
+**/subject_ids.txt
 
 # MacOS specific files
 **/.DS_Store

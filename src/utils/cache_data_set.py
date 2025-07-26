@@ -1,3 +1,4 @@
+from typing import Literal
 from src.data_management.data_set_factory import DataSetFactory
 from src.data_management.data_set import BaseDataSetConfig
 from src.utils.config import FeatureMapType
@@ -5,16 +6,17 @@ from src.data_management.data_loader import prepare_standard_data_loaders
 from tqdm import tqdm
 
 
-def cache_data_set(        
-        train_ids: list[int], 
-        val_ids: list[int], 
-        test_ids: list[int],
-        batch_size: int = 8,
-        num_workers: int = 4 
-        ):
+def cache_data_set(
+    dim: Literal["2D", "3D"],
+    train_ids: list[int],
+    val_ids: list[int],
+    test_ids: list[int],
+    batch_size: int = 16,
+    num_workers: int = 4,
+):
     """
     Caches the data set for the given subject IDs using data loaders for efficient memory usage
-    
+
     Args:
         train_ids (list[int]): List of training subject IDs
         val_ids (list[int]): List of validation subject IDs
@@ -25,7 +27,12 @@ def cache_data_set(
     # Define the base configuration for the dataset
     base_config = BaseDataSetConfig(
         target="age",
-        temporal_processes=["mean", "variance", "tsnr"],
+        temporal_processes=[
+            "mean",
+            # "variance",
+            # "tsnr"
+        ],
+        middle_slice=False if dim == "2D" else True,
     )
 
     # Create the dataset factory
@@ -35,30 +42,35 @@ def cache_data_set(
         test_ids=test_ids,
         base_config=base_config,
         anat_feature_maps=[
-            FeatureMapType.GM, 
+            FeatureMapType.GM,
             FeatureMapType.WM,
             FeatureMapType.CSF,
             FeatureMapType.T1
-            ],
+        ],
         func_feature_maps=[
-            FeatureMapType.REHO,
+            # FeatureMapType.REHO,
             FeatureMapType.BOLD,
-        ]
+        ],
     )
 
     train_set, val_set, test_set = dataset_factory.create_data_sets()
+
+    print(f"Started caching data sets with {len(train_set)} training, "
+          f"{len(val_set)} validation, and {len(test_set)} test samples.")
     
     # Cache the datasets using data loaders
     for dataset in [train_set, val_set, test_set]:
         data_loader = prepare_standard_data_loaders(
-            dataset, 
-            batch_size=batch_size,
-            num_workers=num_workers
+            dataset, batch_size=batch_size, num_workers=num_workers, drop_last=False
         )
-        
+
         total_batches = len(data_loader)
-        with tqdm(total=total_batches, desc=f"Caching {dataset.__class__.__name__}") as pbar:
+        with tqdm(
+            total=total_batches, desc=f"Caching {dataset.__class__.__name__}"
+        ) as pbar:
             for _ in data_loader:
                 pbar.update(1)
-                
-        print(f"Successfully cached {len(dataset)} samples for {dataset.__class__.__name__} and {base_config.temporal_processes} temporal process(es).")
+
+        print(
+            f"Successfully cached {len(dataset)} samples for {dataset.__class__.__name__} and {base_config.temporal_processes} temporal process(es)."
+        )

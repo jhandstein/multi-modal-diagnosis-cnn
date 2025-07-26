@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from src.data_management.create_data_split import DataSplitFile
+from src.data_splitting.create_data_split import DataSplitFile
 from src.data_management.data_set import NakoSingleModalityDataset, SingleModalityDataSetConfig
 from src.utils.config import (
     AGE_SEX_BALANCED_10K_PATH,

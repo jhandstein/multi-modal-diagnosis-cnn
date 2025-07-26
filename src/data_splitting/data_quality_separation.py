@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 import pandas as pd
 
-from src.data_management.create_data_split import (
+from src.data_splitting.create_data_split import (
     check_split_results,
     create_balanced_sample,
     DataSplitFile,
@@ -11,14 +11,15 @@ from src.data_management.create_data_split import (
     sub_sample_data_split,
 )
 from src.utils.config import (
+    FAULTY_SAMPLE_IDS,
     HIGH_QUALITY_IDS,
     LOW_QUALITY_IDS,
     MEDIUM_QUALITY_IDS,
     METRICS_CSV_PATH,
     QUALITY_SPLITS_PATH,
 )
-from src.utils.load_targets import extract_targets
-from src.utils.subject_selection import load_subject_ids_from_file
+from src.data_splitting.load_targets import extract_targets
+from src.data_splitting.subject_selection import load_subject_ids_from_file
 
 # https://mriqc.readthedocs.io/en/latest/iqms/t1w.html
 # https://mriqc.readthedocs.io/en/latest/iqms/bold.html
@@ -253,10 +254,6 @@ class QualitySampler:
     Class to sample subjects from the previously determined quality groups.
     """
 
-    FAULTY_SAMPLES = [
-        127569 # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
-    ]
-
     def __init__(self, quality_split_results: dict[str, list]):
         self.quality_split_results = quality_split_results
         self.labels: dict[str, pd.Series] = {
@@ -302,7 +299,7 @@ class QualitySampler:
         processed_samples = load_subject_ids_from_file()
         # Remove potentially faulty subjects from the labels
         processed_samples = [
-            id_ for id_ in processed_samples if id_ not in self.FAULTY_SAMPLES
+            id_ for id_ in processed_samples if id_ not in FAULTY_SAMPLE_IDS
         ]
 
         # Filter the labels_series to only include processed samples
@@ -342,7 +339,7 @@ class QualitySampler:
         for set_name, ids in current_split.items():
             len_old_ids = len(ids)
             # Remove faulty subjects from the current set
-            new_ids = [id_ for id_ in ids if id_ not in self.FAULTY_SAMPLES]
+            new_ids = [id_ for id_ in ids if id_ not in FAULTY_SAMPLE_IDS]
 
             # If we removed some subjects, we need to resample to maintain the original number
             if len(new_ids) < len_old_ids:
@@ -351,11 +348,11 @@ class QualitySampler:
                 )
                 num_to_sample = len_old_ids - len(new_ids)
                 print(f"Number of subjects to sample: {num_to_sample}")
-            
+
                 available_ids = labels_series.index.difference(existing_ids)
 
                 # Ensure replacements have the correct labels
-                faulty_labels = labels_series.loc[self.FAULTY_SAMPLES]
+                faulty_labels = labels_series.loc[FAULTY_SAMPLE_IDS]
                 replacements = []
                 for label in faulty_labels:
                     # Find available subjects with the same label
@@ -370,16 +367,16 @@ class QualitySampler:
                         raise ValueError(
                             f"No available subjects with label {label} to replace faulty subjects."
                         )
-                
+
                 # Add the replacements to the set
                 replacements = [int(id_) for id_ in replacements]
                 print(f"Replacements for faulty subjects in {set_name}: {replacements}")
                 new_ids.extend(replacements)
             # Update the current split with the new IDs
             current_split[set_name] = new_ids
-            print(f"Updated {set_name} set in {quality_group} quality group: {len(new_ids)} subjects")
-
-
+            print(
+                f"Updated {set_name} set in {quality_group} quality group: {len(new_ids)} subjects"
+            )
 
         # Save the updated split back to the file
         file_path = self._fetch_file_path(quality_group)

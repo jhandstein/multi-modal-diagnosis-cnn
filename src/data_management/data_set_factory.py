@@ -50,6 +50,13 @@ class DataSetFactory:
         val_set = self.create_set(self.val_ids)
         test_set = self.create_set(self.test_ids)
         return train_set, val_set, test_set
+    
+    def create_train_test_sets(self):
+        """Creates the train and test data sets"""
+        # Combine train and validation IDs for final results
+        train_set = self.create_set(self.train_ids + self.val_ids)
+        test_set = self.create_set(self.test_ids)
+        return train_set, test_set
 
     def create_set(self, ids) -> NakoSingleModalityDataset | NakoMultiModalityDataset:
         """Creates the appropriate dataset type based on the config."""

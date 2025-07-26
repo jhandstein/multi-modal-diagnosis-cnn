@@ -245,3 +245,38 @@ class ResNet18Regression3d(ResNet18Base3d):
         out = self.forward_convolution(x)
         out = self.fc(out)
         return out.view(-1)
+
+class ResNet18DualModality3dBase(nn.Module):
+    def __init__(self, anat_channels: int, func_channels: int):
+        super(ResNet18DualModality3dBase, self).__init__()
+        self.anat_branch = ResNet18Base3d(in_channels=anat_channels)
+        self.func_branch = ResNet18Base3d(in_channels=func_channels)
+
+    def forward_branches(self, x1, x2):
+        out1 = self.anat_branch.forward_convolution(x1)
+        out2 = self.func_branch.forward_convolution(x2)
+        return torch.cat((out1, out2), dim=1)
+
+
+class ResNet18Binary3dDualModality(ResNet18DualModality3dBase):
+    def __init__(self, anat_channels: int, func_channels: int):
+        super().__init__(anat_channels, func_channels)
+        self.fc = nn.Linear(512 * 2, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x1, x2):
+        out = self.forward_branches(x1, x2)
+        out = self.fc(out)
+        out = self.sigmoid(out)
+        return out.view(-1)
+
+
+class ResNet18Regression3dDualModality(ResNet18DualModality3dBase):
+    def __init__(self, anat_channels: int, func_channels: int):
+        super().__init__(anat_channels, func_channels)
+        self.fc = nn.Linear(512 * 2, 1)
+
+    def forward(self, x1, x2):
+        out = self.forward_branches(x1, x2)
+        out = self.fc(out)
+        return out.view(-1)

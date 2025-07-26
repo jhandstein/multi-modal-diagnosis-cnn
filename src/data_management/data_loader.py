@@ -12,8 +12,8 @@ BATCH_PARAMS_CUDA01 = {
 BATCH_PARAMS_CUDA02 = {
     ("2D", "ConvBranch"): (64, 1),
     ("2D", "ResNet18"): (64, 1),
-    ("3D", "ConvBranch"): (16, 2),
-    ("3D", "ResNet18"): (16, 2),
+    ("3D", "ConvBranch"): (8, 4),
+    ("3D", "ResNet18"): (8, 4),
 }
 
 
@@ -60,7 +60,7 @@ def infer_batch_size(
 
 
 def prepare_standard_data_loaders(
-    data_set: Dataset, batch_size: int = 8, num_workers: int = 4
+    data_set: Dataset, batch_size: int = 8, num_workers: int = 4, drop_last: bool = True, shuffle: bool = True
 ) -> DataLoader:
     """
     Prepare standard data loaders for training and validation.
@@ -78,8 +78,8 @@ def prepare_standard_data_loaders(
         pin_memory=True,
         persistent_workers=True, # disable if issues with the server
         # Data properties
-        shuffle=False,
-        drop_last=True,
+        shuffle=shuffle,
+        drop_last=drop_last,
     )
 
     return data_loader

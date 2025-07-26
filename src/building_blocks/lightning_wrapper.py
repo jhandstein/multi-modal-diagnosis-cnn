@@ -5,17 +5,24 @@ from torch import optim, nn
 import torch
 
 from src.building_blocks.custom_model import BaseConvBranch2d, BaseConvBranch3d
-from src.building_blocks.resnet18 import ResNet18Base2d, ResNet18Binary2dDualModality, ResNet18Regression2dDualModality
+from src.building_blocks.resnet18 import (
+    ResNet18Base2d,
+    ResNet18Binary2dDualModality,
+    ResNet18Regression2dDualModality,
+)
 from src.building_blocks.torchmetrics import MetricsFactory
 
 
 class LightningWrapperCnn(L.LightningModule):
     def __init__(
-        self, model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+        self,
+        model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d,
+        task: Literal["classification", "regression"],
+        learning_rate: float = 1e-3,
     ):
         super().__init__()
         self.task = task
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=["model"])
 
         # Training building blocks
         self.model = model
@@ -58,17 +65,17 @@ class LightningWrapperCnn(L.LightningModule):
 
     def forward(self, x):
         return self.model(x)
-    
+
     # TODO: Remove later
     def on_train_end(self):
         super().on_train_end()
         print(f"\nGPU {self.device} Statistics:")
         print(f"Training samples per epoch: {self.epoch_samples['train']}")
         print(f"Validation samples per epoch: {self.epoch_samples['val']}")
-        
+
         if self.trainer is not None:
-            total_train = self.trainer.world_size * self.epoch_samples['train']
-            total_val = self.trainer.world_size * self.epoch_samples['val']
+            total_train = self.trainer.world_size * self.epoch_samples["train"]
+            total_val = self.trainer.world_size * self.epoch_samples["val"]
             print(f"\nAcross all {self.trainer.world_size} GPUs:")
             print(f"Total training samples per epoch: {total_train}")
             print(f"Total validation samples per epoch: {total_val}")
@@ -78,7 +85,7 @@ class LightningWrapperCnn(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model(x)
-        
+
         # Validate labels for binary classification
         if self.task == "classification" and not ((y == 0) | (y == 1)).all():
             raise ValueError(f"Labels must be 0 or 1, got values: {y.unique()}")
@@ -86,19 +93,16 @@ class LightningWrapperCnn(L.LightningModule):
         loss = self.loss_func(y_hat, y)
 
         # Log all metrics
-        metrics_dict = {
-            "train_loss": loss,
-            **self.train_metrics(y, y_hat)
-        }
+        metrics_dict = {"train_loss": loss, **self.train_metrics(y, y_hat)}
         self.log_dict(metrics_dict, **self.logging_params)
 
         # Log current learning rate
-        current_lr = self.optimizers().param_groups[0]['lr']
+        current_lr = self.optimizers().param_groups[0]["lr"]
         self.log("learning_rate", current_lr, **self.logging_params)
 
         # TODO: Remove later
         self.epoch_samples["train"] += len(y)
-        
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -107,15 +111,12 @@ class LightningWrapperCnn(L.LightningModule):
         loss = self.loss_func(y_hat, y)
 
         # Log all metrics
-        metrics_dict = {
-            "val_loss": loss,
-            **self.val_metrics(y, y_hat)
-        }
+        metrics_dict = {"val_loss": loss, **self.val_metrics(y, y_hat)}
         self.log_dict(metrics_dict, **self.logging_params)
 
         # TODO: Remove later
         self.epoch_samples["val"] += len(y)
-        
+
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -125,20 +126,19 @@ class LightningWrapperCnn(L.LightningModule):
 
         # Compute test metrics
         test_metrics = self.test_metrics(y, y_hat)
-        metrics_dict = {
-            "test_loss": loss,
-            **test_metrics
-        }
+        metrics_dict = {"test_loss": loss, **test_metrics}
 
         # Log test metrics
-        self.log_dict(metrics_dict, sync_dist=True)
+        self.log_dict(metrics_dict, **self.logging_params)
 
         return metrics_dict
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.3)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-7)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.5, patience=5, min_lr=1e-7
+        )
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
@@ -162,7 +162,10 @@ class LightningWrapperCnn(L.LightningModule):
 
 class OneCycleWrapper(LightningWrapperCnn):
     def __init__(
-        self, model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+        self,
+        model: ResNet18Base2d | BaseConvBranch2d | BaseConvBranch3d,
+        task: Literal["classification", "regression"],
+        learning_rate: float = 1e-3,
     ):
         super().__init__(model, task, learning_rate)
 
@@ -170,23 +173,28 @@ class OneCycleWrapper(LightningWrapperCnn):
         # hardcoded lr since 1cylce resets it anyway
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                optimizer,
-                max_lr=self.learning_rate * 25, # div_factor=25 -> initial_lr = max_lr / 25 = self.learning_rate
-                total_steps=self.trainer.estimated_stepping_batches,
-                three_phase=True
-            )
+            optimizer,
+            max_lr=self.learning_rate
+            * 25,  # div_factor=25 -> initial_lr = max_lr / 25 = self.learning_rate
+            total_steps=self.trainer.estimated_stepping_batches,
+            three_phase=True,
+        )
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": lr_scheduler,
-                "interval": "step", # Important!
-            }
+                "interval": "step",  # Important!
+            },
         }
+
 
 # TODO: Implement the multi-modality wrapper properly
 class MultiModalityWrapper(OneCycleWrapper):
     def __init__(
-        self, model: ResNet18Binary2dDualModality | ResNet18Regression2dDualModality, task: Literal["classification", "regression"], learning_rate: float = 1e-3
+        self,
+        model: ResNet18Binary2dDualModality | ResNet18Regression2dDualModality,
+        task: Literal["classification", "regression"],
+        learning_rate: float = 1e-3,
     ):
         super().__init__(model, task, learning_rate)
 
@@ -195,21 +203,18 @@ class MultiModalityWrapper(OneCycleWrapper):
         (x1, x2), y = batch
         y_hat = self.model(x1, x2)
         loss = self.loss_func(y_hat, y)
-        
+
         # Log all metrics
-        metrics_dict = {
-            "train_loss": loss,
-            **self.train_metrics(y, y_hat)
-        }
+        metrics_dict = {"train_loss": loss, **self.train_metrics(y, y_hat)}
         self.log_dict(metrics_dict, **self.logging_params)
 
         # Log current learning rate
-        current_lr = self.optimizers().param_groups[0]['lr']
+        current_lr = self.optimizers().param_groups[0]["lr"]
         self.log("learning_rate", current_lr, **self.logging_params)
 
         # TODO: Remove later
         self.epoch_samples["train"] += len(y)
-        
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -217,19 +222,16 @@ class MultiModalityWrapper(OneCycleWrapper):
         (x1, x2), y = batch
         y_hat = self.model(x1, x2)
         loss = self.loss_func(y_hat, y)
-        
+
         # Log all metrics
-        metrics_dict = {
-            "val_loss": loss,
-            **self.val_metrics(y, y_hat)
-        }
+        metrics_dict = {"val_loss": loss, **self.val_metrics(y, y_hat)}
         self.log_dict(metrics_dict, **self.logging_params)
 
         # TODO: Remove later
         self.epoch_samples["val"] += len(y)
-        
+
         return loss
-    
+
     def test_step(self, batch, batch_idx):
         # Unpack the dual modality batch
         (x1, x2), y = batch
@@ -237,12 +239,9 @@ class MultiModalityWrapper(OneCycleWrapper):
         loss = self.loss_func(y_hat, y)
 
         # Compute test metrics
-        metrics_dict = {
-            "test_loss": loss,
-            **self.test_metrics(y, y_hat)
-        }
+        metrics_dict = {"test_loss": loss, **self.test_metrics(y, y_hat)}
 
         # Log test metrics
-        self.log_dict(metrics_dict, sync_dist=True)
+        self.log_dict(metrics_dict, **self.logging_params)
 
         return metrics_dict

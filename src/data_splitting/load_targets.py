@@ -8,6 +8,11 @@ NAKO_TARGETS = {
     "center": "StudZ",
     "age": "basis_age",
     "sex": "basis_sex",
+    "phq9_sum": "a_emo_phq9_sum",
+    "phq9_cutoff": "a_emo_phq9_cut10", # binary label for PHQ-9 >= 10 -> depression (1) or not (0)
+    "gad7_sum": "a_emo_gad7_sum",
+    "gad7_cutoff": "a_emo_gad7_cut10", # binary label for GAD-7 >= 10 -> moderate or heavy anxiety symptoms (1) or mild or no anxiety symptoms (0)
+    "systolic_blood_pressure": "a_rr_sys",
 }
 
 
