@@ -13,7 +13,7 @@ nohup.out
 **_file.out
 **_training.out
 
-# Plots and figures
+# Plots, figures and local files
 assets/**
 .lr_find_**
 **/lr_finder_results.png
