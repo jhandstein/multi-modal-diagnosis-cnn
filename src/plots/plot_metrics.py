@@ -1,5 +1,5 @@
 from typing import Literal, List
-from matplotlib.path import Path
+from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -52,7 +52,7 @@ def plot_metric(
                 df["epoch"],
                 df[column_name],
                 color=color,
-                label=f"{split.capitalize()} {metric_name}"
+                label=f"{"Train" if split == "train" else "Test"} {metric_name}"
             )
     
     ax.set_xlabel("Epoch")
@@ -65,9 +65,11 @@ def plot_metric(
     
     plt.tight_layout()
     plot_folder_path = file_path.parent / "plots"
+    # plot_folder_path = Path("/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/ccn-code/plots/replot")
     if not plot_folder_path.exists():
         plot_folder_path.mkdir()
     save_path = plot_folder_path / f"{metric.value}_comparison.png"
+    print(f"Saving plot to {save_path}")
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 

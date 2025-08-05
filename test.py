@@ -7,7 +7,7 @@ from src.building_blocks.model_factory import ModelFactory
 from src.data_management.mri_image_files import MriImageFile
 from src.data_management.normalization import MriImageNormalizer
 from src.plots.plot_mri_slice import plot_mri_slice
-from src.plots.plot_metrics import plot_all_metrics
+from src.plots.plot_metrics import plot_all_metrics, plot_metric
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
 from src.plots.plot_age_range import plot_age_range
@@ -23,6 +23,7 @@ from src.utils.config import (
     GAD7_CUTOFF_SPLIT_PATH,
     QUALITY_SPLITS_PATH,
     FeatureMapType,
+    TrainingMetric,
 )
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
 from src.utils.performance_evaluation import calc_loss_based_on_target_mean
@@ -99,4 +100,9 @@ if __name__ == "__main__":
     # print(f"Validation set size: {len(split['val'])}")
     # print(f"Test set size: {len(split['test'])}")
 
-    calc_loss_based_on_target_mean(label="phq9_sum", data_path=PHQ9_CUTOFF_SPLIT_PATH)
+    # calc_loss_based_on_target_mean(label="phq9_sum", data_path=PHQ9_CUTOFF_SPLIT_PATH)
+    plot_metric(
+        file_path=Path("/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/gad7/_3D/1312/Regression3d_gad7_sum_anat_GM_WM_CSF/version_0/metrics_formatted.csv"),
+        metric=TrainingMetric.MAE,
+        splits=["train", "val"],
+    )
