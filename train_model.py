@@ -50,10 +50,10 @@ SEED = 42 # 27, 42, 404, 1312, 1984
 TARGET = "phq9_cutoff" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
 TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
 DATA_SUBSET = "phq9_cutoff"  # "big_sample", "low", "medium", "high", "phq9_cutoff", "gad7_cutoff"
-DIM = "3D"
+DIM = "3D" # 2D, 3D
 EXPERIMENT = f"{DIM}_{TARGET}_final"
 
-
+# Select feature map by commenting/uncommenting
 ANAT_FEATURE_MAPS: list[FeatureMapType] = [
     # FeatureMapType.GM,
     # FeatureMapType.WM,
@@ -77,6 +77,7 @@ TEMPORAL_PROCESS = [
 MODEL_TYPE = "ResNet18"  # "ResNet18" "ConvBranch"
 EPOCHS = 40
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
+# If set to true: Model will be trained on combination of training and validation set.
 FINAL_VERSION = True  # Set to True for final version, False for testing
 
 TEST_CHECKPOINT_PATH = Path("/home/julius/repositories/ccn_code/models/250724_cuda01_42_3D_phq9_cutoff_final_ResNet18Binary3d_phq9_cutoff_raw_T1/version_0/checkpoints/epoch=39-step=2160.ckpt") 
@@ -89,7 +90,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     # Set seed for reproducibility
     seed_everything(seed, workers=True)
 
-    # Infer batch size and GPUs
+    # Infer batch size and GPUs. GPU counts is either manually set or inferred from the compute node.
     batch_size, acc_grad_batches = infer_batch_size(compute_node, DIM, MODEL_TYPE)
     num_gpus = infer_gpu_count(compute_node, num_gpus)
     used_gpus = allocated_free_gpus(num_gpus)
@@ -243,6 +244,7 @@ def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = No
     # Allow for any pending operations to complete
     time.sleep(20)
 
+    #! Testing might not need a separate trainer, but this approach was more reliable in practice.
     print("Entering testing phase...")
     test_trainer_config = LightningTrainerConfig(
         # devices=allocated_free_gpus(1),  # Use the same number of GPUs for testing
@@ -459,7 +461,7 @@ def setup_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def select_data_set(split: Literal["big_sample", "low", "medium", "high"]) -> Path:
+def select_data_set(split: Literal["big_sample", "low", "medium", "high", "phq9_cutoff", "gad7_cutoff"]) -> Path:
     """Selects the data set based on the split type."""
     if split == "big_sample":
         return AGE_SEX_BALANCED_10K_PATH

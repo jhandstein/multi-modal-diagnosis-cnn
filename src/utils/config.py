@@ -10,12 +10,6 @@ SPLIT_PATH = Path("assets/data_splits")
 AGE_SEX_BALANCED_1K_PATH = Path(SPLIT_PATH, "age_sex_split_1k.json")
 AGE_SEX_BALANCED_10K_PATH = Path(SPLIT_PATH, "age_sex_split_10k.json")
 
-RESHUFFLED_27_PATH = Path(SPLIT_PATH, "reshuffled_27.json")
-# RESHUFFLED_42_PATH = Path(SPLIT_PATH, "reshuffled_42.json")
-RESHUFFLED_1984_PATH = Path(SPLIT_PATH, "reshuffled_1984.json")
-RESHUFFLED_1312_PATH = Path(SPLIT_PATH, "reshuffled_1312.json")
-RESHUFFLED_404_PATH = Path(SPLIT_PATH, "reshuffled_404.json")
-
 
 QUALITY_SPLITS_PATH = Path(SPLIT_PATH, "quality_split_fd_cnr.json")
 LOW_QUALITY_IDS = Path(SPLIT_PATH, "quality_split_low_quality_ids.json")
@@ -44,8 +38,8 @@ AVAILABLE_SUBJECT_IDS = Path(
 )
 
 FAULTY_SAMPLE_IDS = [
-    127569 # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
-]  
+    127569  # The dimension of the fMRI don't match (1, 62, 54) vs. (1, 62, 48)
+]
 
 # IDs for the subjects that have high quality sMRI and fMRI data
 # High quality fMRI also means that sMRI is high quality..?
@@ -61,8 +55,9 @@ LOW_QUALITY_FMRI_IDS = Path(
     NAKO_PATH,
     "derivatives_ses0/info_MRI_availability/list_subjects_NAKO_rsfMRI_low_quality.tsv",
 )
-METRICS_CSV_PATH = Path("/ritter/share/projects/Marina/DataLab/MRI_quality_metrics/all_quality_metrics_MRI_NAKO_ses0.csv")
-
+METRICS_CSV_PATH = Path(
+    "/ritter/share/projects/Marina/DataLab/MRI_quality_metrics/all_quality_metrics_MRI_NAKO_ses0.csv"
+)
 
 
 class ModalityType(Enum):
@@ -76,7 +71,7 @@ class ModalityType(Enum):
 class FeatureMapType(Enum):
     """
     Enum for the different feature map types that can be extracted from the MRI data
-    
+
     fm.label: Label of the feature map
     fm.modality: Modality of the feature map
     fm.modality_label: Modality label of the feature map
@@ -116,6 +111,7 @@ class FeatureMapType(Enum):
     def modality_label(self) -> str:
         """Returns the modality label of the feature map"""
         return self._modality.value
+
 
 class TrainingMetric(Enum):
     # Main metrics
