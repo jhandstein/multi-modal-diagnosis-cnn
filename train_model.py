@@ -46,7 +46,7 @@ from src.utils.file_path_helper import construct_model_name
 # IDEA: All / most of the global variables should be moved to a config file or class, e.g. loading of a yaml that is provided as an argument.
 
 # Global variables for training parameters
-SEED = 404 # 27, 42, 404, 1312, 1984
+SEED = 42 # 27, 42, 404, 1312, 1984
 TARGET = "phq9_cutoff" # "age" "sex" "phq9_sum" "phq9_cutoff" "gad7_sum" "gad7_cutoff" "systolic_blood_pressure"
 TASK = "classification" if TARGET in ["sex", "phq9_cutoff", "gad7_cutoff"] else "regression" # "classification" "regression"
 DATA_SUBSET = "phq9_cutoff"  # "big_sample", "low", "medium", "high", "phq9_cutoff", "gad7_cutoff"
@@ -79,7 +79,7 @@ EPOCHS = 40
 LEARNING_RATE = 1e-3  # mr_lr = lr * 25
 FINAL_VERSION = True  # Set to True for final version, False for testing
 
-TEST_CHECKPOINT_PATH = Path("/home/julius/repositories/ccn_code/models/250722_cuda01_404_3D_gad7_cutoff_final_ResNet18Binary3dDualModality_gad7_cutoff_anat-func_T1_bold/version_0/checkpoints/epoch=39-step=1440.ckpt") 
+TEST_CHECKPOINT_PATH = Path("/home/julius/repositories/ccn_code/models/250724_cuda01_42_3D_phq9_cutoff_final_ResNet18Binary3d_phq9_cutoff_raw_T1/version_0/checkpoints/epoch=39-step=2160.ckpt") 
 
 def train_model(num_gpus: int = None, compute_node: str = None, prefix: str = None, seed: int = SEED):
     """Handles all the logic for training the model."""

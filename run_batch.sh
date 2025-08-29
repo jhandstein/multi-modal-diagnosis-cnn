@@ -25,7 +25,8 @@ for SEED in "${SEEDS[@]}"; do
     nohup nice -n 10 python3 train_model.py "${PREFIX}_${SEED}" --seed "$SEED" "${@:2}" > "$FILENAME" 2>&1 &    PID=$!
     echo "Python script for seed $SEED started with PID: $PID"
     echo "PID: $PID" >> "$FILENAME"
-    sleep 100
+    # Set sleep to avoid duplicated automatic GPU assignment for multiple seeds
+    sleep 30
 done
 
 echo "All training runs started."

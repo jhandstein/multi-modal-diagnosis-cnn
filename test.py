@@ -1,16 +1,14 @@
 import json
 from pathlib import Path
 
-from src.data_splitting.advanced_phenotype_split import PhenotypeSampler
-from src.data_splitting.data_quality_separation import QualitySampler
-from src.building_blocks.model_factory import ModelFactory
+from src.data_splitting.create_data_split import create_balanced_sample
 from src.data_management.mri_image_files import MriImageFile
 from src.data_management.normalization import MriImageNormalizer
 from src.plots.plot_mri_slice import plot_mri_slice
 from src.plots.plot_metrics import plot_all_metrics, plot_metric
 from src.data_management.data_loader import prepare_standard_data_loaders
 from src.building_blocks.lr_finder import estimate_initial_learning_rate
-from src.plots.plot_age_range import plot_age_range
+from src.plots.plot_age_range import plot_age_range, plot_age_range_with_comparison
 from src.data_splitting.create_data_split import DataSplitFile
 from src.data_management.data_set import BaseDataSetConfig, SingleModalityDataSetConfig
 from src.data_management.data_set_factory import DataSetFactory
@@ -26,12 +24,6 @@ from src.utils.config import (
     TrainingMetric,
 )
 from src.utils.cuda_utils import allocated_free_gpus, calculate_tensor_size
-from src.utils.performance_evaluation import calc_loss_based_on_target_mean
-from src.utils.cache_data_set import cache_data_set
-from src.utils.check_fm_value_range import check_fm_value_range
-from src.data_splitting.load_targets import extract_targets
-from src.data_splitting.subject_selection import load_subject_ids_from_file
-from src.utils.create_sample_data import generate_sample_data_sets
 
 
 def find_lr():
@@ -101,8 +93,9 @@ if __name__ == "__main__":
     # print(f"Test set size: {len(split['test'])}")
 
     # calc_loss_based_on_target_mean(label="phq9_sum", data_path=PHQ9_CUTOFF_SPLIT_PATH)
-    plot_metric(
-        file_path=Path("/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/gad7/_3D/1312/Regression3d_gad7_sum_anat_GM_WM_CSF/version_0/metrics_formatted.csv"),
-        metric=TrainingMetric.MAE,
-        splits=["train", "val"],
-    )
+    # plot_metric(
+    #     file_path=Path("/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/experiments/_250712_advanced_phenotypes/gad7/_3D/1312/Regression3d_gad7_sum_anat_GM_WM_CSF/version_0/metrics_formatted.csv"),
+    #     metric=TrainingMetric.MAE,
+    #     splits=["train", "val"],
+    # )
+    plot_age_range_with_comparison()

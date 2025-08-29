@@ -24,26 +24,31 @@ METRIC_COLORS = {
     TrainingMetric.SPEARMAN: ["darkcyan", "turquoise", "lightgreen"],
 }
 
+
 def plot_metric(
     file_path: Path,
     metric: TrainingMetric,
-    splits: List[Literal["train", "val", "test"]] = ["train", "val"]
+    splits: List[Literal["train", "val", "test"]] = ["train", "val"],
 ) -> None:
     """
     Plot a single metric across different data splits.
-    
+
     Args:
         file_path: Path to the CSV file containing the metrics
         metric: The metric to plot (from TrainingMetric enum)
         splits: List of data splits to include in the plot
     """
     df = pd.read_csv(file_path)
-    
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    
+
     # Get proper metric name and formatting
-    metric_name = metric.value.upper() if metric.value in ["auc", "mae", "mse", "rmse"] else metric.value.capitalize()
-    
+    metric_name = (
+        metric.value.upper()
+        if metric.value in ["auc", "mae", "mse", "rmse"]
+        else metric.value.capitalize()
+    )
+
     # Plot each split
     for split, color in zip(splits, METRIC_COLORS[metric]):
         column_name = f"{split}_{metric.value}"
@@ -52,9 +57,9 @@ def plot_metric(
                 df["epoch"],
                 df[column_name],
                 color=color,
-                label=f"{"Train" if split == "train" else "Test"} {metric_name}"
+                label=f"{'Train' if split == 'train' else 'Test'} {metric_name}",
             )
-    
+
     ax.set_xlabel("Epoch")
     ax.set_ylabel(metric_name)
     ax.set_title(f"{metric_name} Over Training")
@@ -62,7 +67,7 @@ def plot_metric(
     # Set log scale for loss metrics
     if metric in [TrainingMetric.MAE, TrainingMetric.MSE, TrainingMetric.RMSE]:
         ax.set_yscale("log")
-    
+
     plt.tight_layout()
     plot_folder_path = file_path.parent / "plots"
     # plot_folder_path = Path("/Users/Julius/Documents/2_Uni/2_Potsdam/thesis/ccn-code/plots/replot")
@@ -73,46 +78,49 @@ def plot_metric(
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
+
 def plot_main_metrics(
     file_path: Path,
     task: Literal["classification", "regression"],
-    splits: List[Literal["train", "val", "test"]] = ["train", "val"]
+    splits: List[Literal["train", "val", "test"]] = ["train", "val"],
 ) -> None:
     """
     Plot main training metrics (loss + accuracy/r2) in one figure with two y-axes.
     """
     df = pd.read_csv(file_path)
-    
+
     fig, ax1 = plt.subplots(figsize=(10, 6))
-    
+
     # Plot losses on primary y-axis (left)
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Loss", color=METRIC_COLORS[TrainingMetric.LOSS][0])
-    
+
     for split, color in zip(splits, METRIC_COLORS[TrainingMetric.LOSS]):
         ax1.plot(
-            df["epoch"], 
+            df["epoch"],
             df[f"{split}_loss"],
             color=color,
-            label=f"{split.capitalize()} Loss"
+            label=f"{split.capitalize()} Loss",
         )
     ax1.tick_params(axis="y", labelcolor=METRIC_COLORS[TrainingMetric.LOSS][0])
-    
+
     # Plot accuracy/r2 on secondary y-axis (right)
     ax2 = ax1.twinx()
-    second_metric = TrainingMetric.ACCURACY if task == "classification" else TrainingMetric.R2
+    second_metric = (
+        TrainingMetric.ACCURACY if task == "classification" else TrainingMetric.R2
+    )
     metric_name = second_metric.value.capitalize()
-    
+
     ax2.set_ylabel(metric_name, color=METRIC_COLORS[second_metric][0])
     for split, color in zip(splits, METRIC_COLORS[second_metric]):
         ax2.plot(
             df["epoch"],
             df[f"{split}_{second_metric.value}"],
             color=color,
-            label=f"{split.capitalize()} {metric_name}"
+            label=f"{split.capitalize()} {metric_name}",
         )
     ax2.tick_params(axis="y", labelcolor=METRIC_COLORS[second_metric][0])
-    
+
     # Add title and legend
     plt.title("Training and Validation Metrics")
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -129,7 +137,6 @@ def plot_main_metrics(
     if task == "regression":
         ax1.set_ylim(0, 1000)
 
-    
     # Save plot
     plt.tight_layout()
     plot_folder_path = file_path.parent / "plots"
@@ -138,10 +145,11 @@ def plot_main_metrics(
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
+
 def plot_task_metrics(
     file_path: Path,
     task: Literal["classification", "regression"],
-    splits: List[Literal["train", "val", "test"]] = ["train", "val"]
+    splits: List[Literal["train", "val", "test"]] = ["train", "val"],
 ) -> None:
     """
     Plot task-specific metrics (classification: f1/precision/recall/auc, regression: mae/mse/rmse/spearman).
@@ -150,40 +158,45 @@ def plot_task_metrics(
         TrainingMetric.F1,
         TrainingMetric.PRECISION,
         TrainingMetric.RECALL,
-        TrainingMetric.AUC
+        TrainingMetric.AUC,
     ]
     regression_metrics = [
         TrainingMetric.MAE,
         TrainingMetric.MSE,
         TrainingMetric.RMSE,
-        TrainingMetric.SPEARMAN
+        TrainingMetric.SPEARMAN,
     ]
-    
-    metrics_to_plot = classification_metrics if task == "classification" else regression_metrics
-    
+
+    metrics_to_plot = (
+        classification_metrics if task == "classification" else regression_metrics
+    )
+
     for metric in metrics_to_plot:
         plot_metric(file_path, metric, splits)
+
 
 def plot_learning_rate(file_path: Path) -> None:
     """
     Plot the learning rate schedule over epochs.
-    
+
     Args:
         file_path: Path to the CSV file containing the metrics
     """
     df = pd.read_csv(file_path)
-    
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    
+
     # Plot learning rate on log scale
-    ax.semilogy(df["epoch"], df["learning_rate"], color="darkslateblue", label="Learning Rate")
-    
+    ax.semilogy(
+        df["epoch"], df["learning_rate"], color="darkslateblue", label="Learning Rate"
+    )
+
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Learning Rate")
     ax.set_title("Learning Rate Schedule")
     ax.grid(True, which="both", ls="-", alpha=0.2)
     ax.legend(loc="center right")
-    
+
     plt.tight_layout()
     plot_folder_path = file_path.parent / "plots"
     plot_folder_path.mkdir(exist_ok=True)
@@ -191,10 +204,11 @@ def plot_learning_rate(file_path: Path) -> None:
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
+
 def plot_all_metrics(
     file_path: Path,
     task: Literal["classification", "regression"],
-    splits: List[Literal["train", "val", "test"]] = ["train", "val"]
+    splits: List[Literal["train", "val", "test"]] = ["train", "val"],
 ) -> None:
     """
     Plot both main metrics and task-specific metrics.
@@ -202,4 +216,3 @@ def plot_all_metrics(
     plot_main_metrics(file_path, task, splits)
     plot_task_metrics(file_path, task, splits)
     plot_learning_rate(file_path)
-
